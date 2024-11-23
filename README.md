@@ -1,0 +1,2 @@
+Based on [An Introduction to Solid Modeling](https://www.amazon.com/Introduction-Solid-Modeling-Martti-Mantyla/dp/0716780151), by Martti Mantyla.
+Raylib Dear ImGui [backend](https://github.com/alfredbaudisch/raylib-cimgui) by Alfred Reinold Baudisch

@@ -1,0 +1,111 @@
+#ifdef __cplusplus
+#error "Must be compiled with a C compiler"
+#endif
+
+#include "scan.h"
+
+#include <stdio.h>
+
+#include "defines.h"
+
+void ListSolid(bdSolid* s) {
+  bdFace* f;
+  bdLoop* l;
+  bdHalfEdge* he;
+
+  f = s->sfaces;
+  while (f) {
+    printf("face %d:\n", f->faceno);
+    l = f->floops;
+    while (l) {
+      printf("loop:");
+      he = l->ledg;
+      do {
+        printf(" %d: (%f %f %f)", he->vtx->vertexno, he->vtx->vcoord[0],
+               he->vtx->vcoord[1], he->vtx->vcoord[2]);
+      } while ((he = he->nxt) != l->ledg);
+      printf("\n");
+      l = l->nextl;
+    }
+    f = f->nextf;
+  }
+}
+
+void ListNeighbors(bdVertex* v) {
+  bdHalfEdge* adj;
+
+  adj = v->vedge;
+  if (adj) {
+    do {
+      printf("%d ", adj->nxt->vtx->vertexno);
+    } while ((adj = MATE(adj)->nxt) != v->vedge);
+  } else {
+    printf("no adjacent vertices");
+  }
+  printf("\n");
+}
+
+bdSolid* GetSolid(Id sn) {
+  bdSolid* s;
+  for (s = firsts; s != NULL; s = s->nexts) {
+    if (s->solidno == sn) {
+      return s;
+    }
+  }
+  return NULL;
+}
+
+bdFace* GetFace(bdSolid* s, Id fn) {
+  bdFace* f;
+  for (f = s->sfaces; f != NULL; f = f->nextf) {
+    if (f->faceno == fn) {
+      return f;
+    }
+  }
+  return NULL;
+}
+
+bdHalfEdge* GetHalfEdge(bdFace* f, Id vn1, Id vn2) {
+  bdLoop* l;
+  bdHalfEdge* h;
+  for (l = f->floops; l != NULL; l = l->nextl) {
+    h = l->ledg;
+    do {
+      if (h->vtx->vertexno == vn1 && h->nxt->vtx->vertexno == vn2) {
+        return h;
+      }
+    } while ((h = h->nxt) != l->ledg);
+  }
+  return NULL;
+}
+
+void GetMaxNames(Id sn) {
+  bdSolid* s;
+  bdVertex* v;
+  bdFace* f;
+
+  s = GetSolid(sn);
+  for (v = s->sverts, maxv = 0; v != NULL; v = v->nextv) {
+    if (v->vertexno > maxv) {
+      maxv = v->vertexno;
+    }
+  }
+  for (f = s->sfaces, maxf = 0; f != NULL; f = f->nextf) {
+    if (f->faceno > maxf) {
+      maxf = f->faceno;
+    }
+  }
+}
+
+int Match(bdHalfEdge* h1, bdHalfEdge* h2) {
+  NULL_CHECK_RET(h1, 0)
+  NULL_CHECK_RET(h2, 0)
+  NULL_CHECK_RET(h1->vtx, 0)
+  NULL_CHECK_RET(h2->vtx, 0)
+
+  bdVertex* v1 = h1->vtx;
+  bdVertex* v2 = h2->vtx;
+  return (ABS(v1->vcoord[X] - v2->vcoord[X]) < EPS &&
+          ABS(v1->vcoord[Y] - v2->vcoord[Y]) < EPS &&
+          ABS(v1->vcoord[Z] - v2->vcoord[Z]) < EPS);
+}
