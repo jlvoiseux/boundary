@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(bound C CXX)
+project(boundary C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
@@ -22,7 +22,7 @@ set(IMGUI_STATIC ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(cimgui)
 
 add_executable(
-        bound
+        boundary
         main.c
         gui.c
         prim.c
@@ -35,8 +35,8 @@ add_executable(
         render.c
 )
 
-set_target_properties(bound PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(bound PRIVATE raylib cimgui)
+set_target_properties(boundary PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(boundary PRIVATE raylib cimgui)
 
 # Unit tests
 
