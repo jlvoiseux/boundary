@@ -21,8 +21,8 @@ static unsigned node_size[] = {
     sizeof(bdSolid),
     sizeof(bdFace),
     sizeof(bdLoop),
-    sizeof(bdEdge),
     sizeof(bdHalfEdge),
+    sizeof(bdEdge),
     sizeof(bdVertex),
     0,
 };

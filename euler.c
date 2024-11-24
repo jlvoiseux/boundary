@@ -29,8 +29,8 @@ void Lmev(bdHalfEdge* he1, bdHalfEdge* he2, Id v, float x, float y, float z) {
     he = MATE(he)->nxt;
   }
 
-  AppendHalfEdge(newedge, newvertex, he2, PLUS);
   AppendHalfEdge(newedge, he2->vtx, he1, MINUS);
+  AppendHalfEdge(newedge, newvertex, he2, PLUS);
 
   newvertex->vedge = he2->prv;
   he2->vtx->vedge = he2;
@@ -41,19 +41,25 @@ void Lkev(bdHalfEdge* he1, bdHalfEdge* he2) {
   NULL_CHECK(he2)
   NULL_CHECK(he1->vtx)
   NULL_CHECK(he2->vtx)
+  NULL_CHECK(he1->edg)
+  NULL_CHECK(he1->wloop)
+  NULL_CHECK(he1->wloop->lface)
+  NULL_CHECK(he1->wloop->lface->fsolid)
 
   bdVertex* v1 = he1->vtx;
   bdVertex* v2 = he2->vtx;
-  bdHalfEdge* current = he1;
+  bdEdge* killedge = he1->edg;
+  bdSolid* solid = he1->wloop->lface->fsolid;
+  bdHalfEdge* mate = MATE(he1);
 
+  bdHalfEdge* current = he1;
   do {
     current->vtx = v2;
     current = MATE(current)->nxt;
   } while (current != he1);
 
-  bdEdge* killedge = he1->edg;
-  bdHalfEdge* h1 = RemoveHalfEdge(he1);
-  bdHalfEdge* h2 = RemoveHalfEdge(MATE(he1));
+  bdHalfEdge* h1 = RemoveHalfEdge(mate);  // Remove mate first
+  bdHalfEdge* h2 = RemoveHalfEdge(he1);   // Then remove he1
 
   if (h1) {
     h1->vtx->vedge = h1;
@@ -62,8 +68,8 @@ void Lkev(bdHalfEdge* he1, bdHalfEdge* he2) {
     h2->vtx->vedge = h2;
   }
 
-  DeleteNode(EDGE, (bdNode*)killedge, (bdNode*)he1->wloop->lface->fsolid);
-  DeleteNode(VERTEX, (bdNode*)v1, (bdNode*)he1->wloop->lface->fsolid);
+  DeleteNode(EDGE, (bdNode*)killedge, (bdNode*)solid);
+  DeleteNode(VERTEX, (bdNode*)v1, (bdNode*)solid);
 }
 
 bdFace* Lmef(bdHalfEdge* he1, bdHalfEdge* he2, Id f) {
@@ -349,8 +355,8 @@ int Mev(Id s, Id f1, Id f2, Id v1, Id v2, Id v3, Id v4, float x, float y,
 int Smev(Id s, Id f1, Id v1, Id v4, float x, float y, float z) {
   bdSolid* oldsolid;
   bdFace* oldface;
-  bdHalfEdge* he1;
-  bdHalfEdge* start;
+  bdHalfEdge* start = NULL;
+  bdHalfEdge* he = NULL;
   int found = 0;
 
   if ((oldsolid = GetSolid(s)) == NULL) {
@@ -366,14 +372,18 @@ int Smev(Id s, Id f1, Id v1, Id v4, float x, float y, float z) {
   bdLoop* l = oldface->floops;
   while (l && !found) {
     start = l->ledg;
-    he1 = start;
     do {
-      if (he1->vtx->vertexno == v1) {
+      if (start->vtx->vertexno == v1) {
+        if (found) {
+          fprintf(stderr, "smev: vertex %d appears multiple times in face %d\n",
+                  v1, f1);
+          return ERROR;
+        }
+        he = start;
         found = 1;
-        break;
       }
-      he1 = he1->nxt;
-    } while (he1 != start);
+      start = start->nxt;
+    } while (start != l->ledg);
     l = l->nextl;
   }
 
@@ -382,7 +392,7 @@ int Smev(Id s, Id f1, Id v1, Id v4, float x, float y, float z) {
     return ERROR;
   }
 
-  Lmev(he1, he1, v4, x, y, z);
+  Lmev(he, he, v4, x, y, z);
   return SUCCESS;
 }
 

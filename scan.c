@@ -31,6 +31,62 @@ void ListSolid(bdSolid* s) {
   }
 }
 
+void ListSolidJson(bdSolid* s) {
+  NULL_CHECK(s)
+
+  printf("{\n");
+  printf("  \"solid\": {\n");
+  printf("    \"id\": %d,\n", s->solidno);
+  printf("    \"faces\": [\n");
+
+  bdFace* f = s->sfaces;
+  while (f) {
+    printf("      {\n");
+    printf("        \"id\": %d,\n", f->faceno);
+    printf("        \"loops\": [\n");
+
+    bdLoop* l = f->floops;
+    while (l) {
+      printf("          {\n");
+      printf("            \"vertices\": [\n");
+
+      bdHalfEdge* he = l->ledg;
+      do {
+        printf("              {\n");
+        printf("                \"id\": %d,\n", he->vtx->vertexno);
+        printf("                \"coords\": [%f, %f, %f],\n",
+               he->vtx->vcoord[X],
+               he->vtx->vcoord[Y],
+               he->vtx->vcoord[Z]);
+        printf("                \"halfEdges\": {\n");
+        printf("                  \"next\": %d,\n", he->nxt->vtx->vertexno);
+        printf("                  \"prev\": %d,\n", he->prv->vtx->vertexno);
+        if (he->edg) {
+          printf("                  \"mate\": %d\n", MATE(he)->vtx->vertexno);
+        } else {
+          printf("                  \"mate\": null\n");
+        }
+        printf("                }\n");
+        printf("              }%s\n",
+               (he->nxt != l->ledg) ? "," : "");
+        he = he->nxt;
+      } while (he != l->ledg);
+
+      printf("            ]\n");
+      printf("          }%s\n", l->nextl ? "," : "");
+      l = l->nextl;
+    }
+
+    printf("        ]\n");
+    printf("      }%s\n", f->nextf ? "," : "");
+    f = f->nextf;
+  }
+
+  printf("    ]\n");
+  printf("  }\n");
+  printf("}\n");
+}
+
 void ListNeighbors(bdVertex* v) {
   bdHalfEdge* adj;
 

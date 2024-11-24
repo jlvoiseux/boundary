@@ -33,7 +33,6 @@ add_executable(
         transform.c
         linalg.c
         render.c
-        tests/euler_tests.c
 )
 
 set_target_properties(bound PROPERTIES LINKER_LANGUAGE CXX)

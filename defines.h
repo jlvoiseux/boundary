@@ -7,13 +7,6 @@
 #define SUCCESS -2
 #define PI 3.14159265358979323846f
 
-#define SOLID 0
-#define FACE 1
-#define LOOP 2
-#define HALFEDGE 3
-#define EDGE 4
-#define VERTEX 5
-
 #define X 0
 #define Y 1
 #define Z 2

@@ -3,6 +3,7 @@
 #include "prim.h"
 
 void ListSolid(bdSolid* s);
+void ListSolidJson(bdSolid* s);
 void ListNeighbors(bdVertex* v);
 
 bdSolid* GetSolid(Id sn);

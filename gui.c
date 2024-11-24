@@ -62,9 +62,6 @@ static void RenderViewport(void) {
 }
 
 void GuiBegin(void) {
-  if (igIsItemHovered(ImGuiHoveredFlags_None)) {
-    UpdateCamera(&g_camera, CAMERA_ORBITAL);
-  }
   RenderViewport();
 
   ImGui_ImplRaylib_ProcessEvents();
@@ -102,6 +99,11 @@ void GuiBegin(void) {
         LoadRenderTexture((int)viewport_size.x, (int)viewport_size.y);
   }
   rligImageRenderTexture(&g_viewport_texture);
+
+  if (igIsItemHovered(ImGuiHoveredFlags_None)) {
+    UpdateCamera(&g_camera, CAMERA_ORBITAL);
+  }
+
   igEnd();
 }
 

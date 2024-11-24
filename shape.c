@@ -44,17 +44,11 @@ bdSolid* Block(Id sn, float dx, float dy, float dz) {
   bdSolid* s;
 
   s = Mvfs(sn, 1, 1, 0.0f, 0.0f, 0.0f);
-  ListSolid(s);
   Smev(sn, 1, 1, 2, dx, 0.0f, 0.0f);
-  ListSolid(s);
   Smev(sn, 1, 2, 3, dx, dy, 0.0f);
-  ListSolid(s);
   Smev(sn, 1, 3, 4, 0.0f, dy, 0.0f);
-  ListSolid(s);
   Smef(sn, 1, 4, 1, 2);
-  ListSolid(s);
   Sweep(GetFace(s, 2), 0.0f, 0.0f, dz);
-  ListSolid(s);
   return s;
 }
 

@@ -53,13 +53,9 @@ void test_Mev(void) {
 
 void test_Mef(void) {
   test_solid = Mvfs(1, 1, 1, 0.0f, 0.0f, 0.0f);
-  ListSolid(test_solid);
   Smev(1, 1, 1, 2, 1.0f, 0.0f, 0.0f);
-  ListSolid(test_solid);
   Smev(1, 1, 2, 3, 1.0f, 1.0f, 0.0f);
-  ListSolid(test_solid);
   Smev(1, 1, 3, 4, 0.0f, 1.0f, 0.0f);
-  ListSolid(test_solid);
   TEST_ASSERT_EQUAL_INT(SUCCESS, Smef(1, 1, 1, 4, 2));
   
   bdFace* f2 = GetFace(test_solid, 2);
@@ -73,8 +69,8 @@ void test_Kemr(void) {
   Smev(1, 1, 2, 3, 1.0f, 1.0f, 0.0f);
   Smev(1, 1, 3, 4, 0.0f, 1.0f, 0.0f);
   Smef(1, 1, 1, 4, 2);
-  
-  TEST_ASSERT_EQUAL_INT(SUCCESS, Kemr(1, 1, 1, 2));
+
+  TEST_ASSERT_EQUAL_INT(SUCCESS, Kemr(1, 2, 1, 2));
   
   bdLoop* inner_loop = test_solid->sfaces->floops;
   TEST_ASSERT_NOT_NULL(inner_loop);
@@ -108,7 +104,7 @@ void test_Mekr(void) {
   Smev(1, 1, 2, 3, 1.0f, 1.0f, 0.0f);
   Smev(1, 1, 3, 4, 0.0f, 1.0f, 0.0f);
   Smef(1, 1, 1, 4, 2);
-  Kemr(1, 1, 1, 2);
+  Kemr(1, 2, 1, 2);
   
   TEST_ASSERT_EQUAL_INT(SUCCESS, Smekr(1, 1, 1, 3));
   TEST_ASSERT_NULL(test_solid->sfaces->floops->nextl);

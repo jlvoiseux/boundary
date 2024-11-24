@@ -12,6 +12,13 @@ typedef struct bdVertex bdVertex;
 typedef struct bdEdge bdEdge;
 typedef union bdNode bdNode;
 
+#define SOLID 0
+#define FACE 1
+#define LOOP 2
+#define HALFEDGE 3
+#define EDGE 4
+#define VERTEX 5
+
 struct bdSolid {
   Id solidno;
   bdFace* sfaces;
