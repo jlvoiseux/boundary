@@ -34,9 +34,12 @@ bdSolid* Circle(Id sn, float cx, float cy, float rad, float h, int n) {
   bdSolid* s;
 
   s = Mvfs(sn, 1, 1, cx + rad, cy, h);
+  ListSolid(s);
   Arc(sn, 1, 1, cx, cy, rad, h, 0.0f, ((float)(n - 1) * 360.0f / (float)n),
       n - 1);
-  Smef(sn, 1, n, 1, 2);
+  ListSolid(s);
+  Smef(sn, 1, 1, n, 2);
+  ListSolid(s);
   return s;
 }
 
@@ -47,7 +50,7 @@ bdSolid* Block(Id sn, float dx, float dy, float dz) {
   Smev(sn, 1, 1, 2, dx, 0.0f, 0.0f);
   Smev(sn, 1, 2, 3, dx, dy, 0.0f);
   Smev(sn, 1, 3, 4, 0.0f, dy, 0.0f);
-  Smef(sn, 1, 4, 1, 2);
+  Smef(sn, 1, 1, 4, 2);
   Sweep(GetFace(s, 2), 0.0f, 0.0f, dz);
   return s;
 }
@@ -65,7 +68,7 @@ bdSolid* Ball(Id sn, float rad, int nver, int nhor) {
 
   s = Mvfs(sn, 1, 1, -rad, 0.0f, 0.0f);
   Arc(sn, 1, 1, 0.0f, 0.0f, rad, 0.0f, 180.0f, 0.0f, nver);
-  Rsweep(s, nhor);
+  Rsweep(s, nhor, 1.0f, 0.0f, 0.0f);
   return s;
 }
 
@@ -73,6 +76,6 @@ bdSolid* Torus(Id sn, float r1, float r2, int nf1, int nf2) {
   bdSolid* s;
 
   s = Circle(sn, 0.0f, r1, r2, 0.0f, nf2);
-  Rsweep(s, nf1);
+  Rsweep(s, nf1, 1.0f, 0.0f, 0.0f);
   return s;
 }

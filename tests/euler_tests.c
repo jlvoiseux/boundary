@@ -104,10 +104,47 @@ void test_Mekr(void) {
   Smev(1, 1, 2, 3, 1.0f, 1.0f, 0.0f);
   Smev(1, 1, 3, 4, 0.0f, 1.0f, 0.0f);
   Smef(1, 1, 1, 4, 2);
-  Kemr(1, 2, 1, 2);
-  
+  Kemr(1, 1, 1, 2);
+
   TEST_ASSERT_EQUAL_INT(SUCCESS, Smekr(1, 1, 1, 3));
   TEST_ASSERT_NULL(test_solid->sfaces->floops->nextl);
+}
+
+void test_Kfmrh(void) {
+  test_solid = Mvfs(1, 1, 1, 0.0f, 0.0f, 0.0f);
+  Smev(1, 1, 1, 2, 1.0f, 0.0f, 0.0f);
+  Smev(1, 1, 2, 3, 1.0f, 1.0f, 0.0f);
+  Smev(1, 1, 3, 4, 0.0f, 1.0f, 0.0f);
+  Smef(1, 1, 4, 1, 2);
+
+  TEST_ASSERT_EQUAL_INT(SUCCESS, Kfmrh(1, 1, 2));
+
+  bdFace* face = GetFace(test_solid, 1);
+  TEST_ASSERT_NOT_NULL(face);
+  TEST_ASSERT_NOT_NULL(face->floops);
+  TEST_ASSERT_NOT_NULL(face->floops->nextl);
+  TEST_ASSERT_NULL(GetFace(test_solid, 2));
+}
+
+void test_Mfkrh(void) {
+  test_solid = Mvfs(1, 1, 1, 0.0f, 0.0f, 0.0f);
+  Smev(1, 1, 1, 2, 1.0f, 0.0f, 0.0f);
+  Smev(1, 1, 2, 3, 1.0f, 1.0f, 0.0f);
+  Smev(1, 1, 3, 4, 0.0f, 1.0f, 0.0f);
+  Smef(1, 1, 4, 1, 2);
+  Kfmrh(1, 1, 2);
+
+  TEST_ASSERT_EQUAL_INT(SUCCESS, Mfkrh(1, 1, 1, 2, 3));
+
+  bdFace* face1 = GetFace(test_solid, 1);
+  bdFace* face3 = GetFace(test_solid, 3);
+
+  TEST_ASSERT_NOT_NULL(face1);
+  TEST_ASSERT_NOT_NULL(face3);
+  TEST_ASSERT_NOT_NULL(face1->floops);
+  TEST_ASSERT_NULL(face1->floops->nextl);
+  TEST_ASSERT_NOT_NULL(face3->flout);
+  TEST_ASSERT_NULL(face3->floops);
 }
 
 int main(void) {
@@ -119,5 +156,7 @@ int main(void) {
   RUN_TEST(test_Kev);
   RUN_TEST(test_Kef);
   RUN_TEST(test_Mekr);
+  RUN_TEST(test_Kfmrh);
+  RUN_TEST(test_Mfkrh);
   return UNITY_END();
 }

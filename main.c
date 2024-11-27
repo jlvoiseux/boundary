@@ -5,6 +5,7 @@
 #include <raylib.h>
 
 #include "gui.h"
+#include "scan.h"
 #include "shape.h"
 
 int main(void) {
@@ -13,7 +14,10 @@ int main(void) {
 
   GuiSetup(true);
 
-  Block(1, 2.0f, 2.0f, 2.0f);
+  //bdSolid* block = Block(1, 2.0f, 2.0f, 2.0f);
+  //bdSolid* cyl = Cyl(1, 2.0f, 2.0f, 8);
+  //bdSolid* ball = Ball(1, 2.0f, 8, 8);
+  bdSolid* torus = Torus(1, 1.5f, 2.0f, 8, 8);
 
   while (!WindowShouldClose()) {
     GuiBegin();

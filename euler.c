@@ -93,8 +93,8 @@ bdFace* Lmef(bdHalfEdge* he1, bdHalfEdge* he2, Id f) {
     he = he->nxt;
   }
 
-  nhe1 = AppendHalfEdge(newedge, he2->vtx, he1, MINUS);
   nhe2 = AppendHalfEdge(newedge, he1->vtx, he2, PLUS);
+  nhe1 = AppendHalfEdge(newedge, he2->vtx, he1, MINUS);
 
   nhe1->prv->nxt = nhe2;
   nhe2->prv->nxt = nhe1;

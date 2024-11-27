@@ -13,6 +13,8 @@ void ListSolid(bdSolid* s) {
   bdLoop* l;
   bdHalfEdge* he;
 
+  printf("==========================\n");
+
   f = s->sfaces;
   while (f) {
     printf("face %d:\n", f->faceno);

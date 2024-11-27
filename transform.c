@@ -66,7 +66,7 @@ void Unsweep(bdFace* f) {
   }
 }
 
-void Rsweep(bdSolid* s, int nfaces) {
+void Rsweep(bdSolid* s, int nfaces, float xaxis, float yaxis, float zaxis) {
   NULL_CHECK(s)
   bdHalfEdge* first;
   bdHalfEdge* cfirst;
@@ -79,8 +79,6 @@ void Rsweep(bdSolid* s, int nfaces) {
   bdVector v;
   int closed_figure;
 
-  GetMaxNames(s->solidno);
-
   if (s->sfaces->nextf) {
     closed_figure = 1;
     h = s->sfaces->floops->ledg;
@@ -92,6 +90,7 @@ void Rsweep(bdSolid* s, int nfaces) {
     closed_figure = 0;
   }
 
+  GetMaxNames(s->solidno);
   first = s->sfaces->floops->ledg;
   while (first->edg != first->nxt->edg) {
     first = first->nxt;
@@ -103,25 +102,24 @@ void Rsweep(bdSolid* s, int nfaces) {
   cfirst = first;
 
   MatIdentity(m);
-  MatRotate(m, (360.0f / (float)nfaces), 0.0f, 0.0f, 1.0f);
+  MatRotate(m, (360.0f / (float)nfaces), 1.0f, 0.0f, 0.0f);
 
   while (--nfaces) {
     VecMultMatrix(v, cfirst->nxt->vtx->vcoord, m);
-    Lmev(cfirst->nxt, cfirst->nxt, ++maxv, v[0], v[1], v[2]);
-
+    Lmev(cfirst->nxt, cfirst->nxt, ++maxv, v[X], v[Y], v[Z]);
     scan = cfirst->nxt;
     while (scan != last->nxt) {
       VecMultMatrix(v, scan->prv->vtx->vcoord, m);
-      Lmev(scan->prv, scan->prv, ++maxv, v[0], v[1], v[2]);
+      Lmev(scan->prv, scan->prv, ++maxv, v[X], v[Y], v[Z]);
       Lmef(scan->prv->prv, scan->nxt, ++maxf);
-      scan = MATE(scan->nxt)->nxt;
+      scan = MATE(scan->nxt->nxt);
     }
 
     last = scan;
     cfirst = MATE(cfirst->nxt->nxt);
   }
 
-  tailf = Lmef(first->nxt, MATE(first), ++maxf);
+  tailf = Lmef(cfirst->nxt, MATE(first), ++maxf);
   while (cfirst != scan) {
     Lmef(cfirst, cfirst->nxt->nxt->nxt, ++maxf);
     cfirst = MATE(cfirst->prv)->prv;
