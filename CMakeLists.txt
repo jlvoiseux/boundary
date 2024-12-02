@@ -33,10 +33,18 @@ add_executable(
         transform.c
         linalg.c
         render.c
+        tesselate.c
+        tesselate.h
 )
 
 set_target_properties(boundary PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(boundary PRIVATE raylib cimgui)
+
+add_custom_command(TARGET boundary POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/shaders
+        ${CMAKE_BINARY_DIR}/shaders
+)
 
 # Unit tests
 
@@ -54,5 +62,7 @@ add_executable(
         prim.c
         scan.c
         linalg.c
+        tesselate.c
+        tesselate.h
 )
 target_link_libraries(unit_tests PRIVATE unity)

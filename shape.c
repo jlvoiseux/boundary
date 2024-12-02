@@ -34,12 +34,8 @@ bdSolid* Circle(Id sn, float cx, float cy, float rad, float h, int n) {
   bdSolid* s;
 
   s = Mvfs(sn, 1, 1, cx + rad, cy, h);
-  ListSolid(s);
-  Arc(sn, 1, 1, cx, cy, rad, h, 0.0f, ((float)(n - 1) * 360.0f / (float)n),
-      n - 1);
-  ListSolid(s);
+  Arc(sn, 1, 1, cx, cy, rad, h, 0.0f, ((float)(n - 1) * 360.0f / (float)n),n - 1);
   Smef(sn, 1, 1, n, 2);
-  ListSolid(s);
   return s;
 }
 
@@ -75,7 +71,8 @@ bdSolid* Ball(Id sn, float rad, int nver, int nhor) {
 bdSolid* Torus(Id sn, float r1, float r2, int nf1, int nf2) {
   bdSolid* s;
 
-  s = Circle(sn, 0.0f, r1, r2, 0.0f, nf2);
+  float circle_radius = (r2-r1)/2.0f;
+  s = Circle(sn, 0.0f, r1 + circle_radius, circle_radius, 0.0f, nf2);
   Rsweep(s, nf1, 1.0f, 0.0f, 0.0f);
   return s;
 }

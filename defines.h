@@ -7,10 +7,6 @@
 #define SUCCESS -2
 #define PI 3.14159265358979323846f
 
-#define X 0
-#define Y 1
-#define Z 2
-
 #define PLUS 0
 #define MINUS 1
 

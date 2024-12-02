@@ -22,13 +22,13 @@ void Sweep(bdFace* fac, float dx, float dy, float dz) {
     scan = first->nxt;
     v = scan->vtx;
 
-    Lmev(scan, scan, ++maxv, v->vcoord[X] + dx, v->vcoord[Y] + dy,
-         v->vcoord[Z] + dz);
+    Lmev(scan, scan, ++maxv, v->vcoord[0] + dx, v->vcoord[1] + dy,
+         v->vcoord[2] + dz);
 
     while (scan != first) {
       v = scan->nxt->vtx;
-      Lmev(scan->nxt, scan->nxt, ++maxv, v->vcoord[X] + dx, v->vcoord[Y] + dy,
-           v->vcoord[Z] + dz);
+      Lmev(scan->nxt, scan->nxt, ++maxv, v->vcoord[0] + dx, v->vcoord[1] + dy,
+           v->vcoord[2] + dz);
       Lmef(scan->prv, scan->nxt->nxt, ++maxf);
       scan = MATE(scan->nxt)->nxt;
     }
@@ -82,8 +82,8 @@ void Rsweep(bdSolid* s, int nfaces, float xaxis, float yaxis, float zaxis) {
   if (s->sfaces->nextf) {
     closed_figure = 1;
     h = s->sfaces->floops->ledg;
-    Lmev(h, MATE(h)->nxt, ++maxv, h->vtx->vcoord[X], h->vtx->vcoord[Y],
-         h->vtx->vcoord[Z]);
+    Lmev(h, MATE(h)->nxt, ++maxv, h->vtx->vcoord[0], h->vtx->vcoord[1],
+         h->vtx->vcoord[2]);
     Lkef(h->prv, MATE(h->prv));
     headf = s->sfaces;
   } else {
@@ -106,11 +106,11 @@ void Rsweep(bdSolid* s, int nfaces, float xaxis, float yaxis, float zaxis) {
 
   while (--nfaces) {
     VecMultMatrix(v, cfirst->nxt->vtx->vcoord, m);
-    Lmev(cfirst->nxt, cfirst->nxt, ++maxv, v[X], v[Y], v[Z]);
+    Lmev(cfirst->nxt, cfirst->nxt, ++maxv, v[0], v[1], v[2]);
     scan = cfirst->nxt;
     while (scan != last->nxt) {
       VecMultMatrix(v, scan->prv->vtx->vcoord, m);
-      Lmev(scan->prv, scan->prv, ++maxv, v[X], v[Y], v[Z]);
+      Lmev(scan->prv, scan->prv, ++maxv, v[0], v[1], v[2]);
       Lmef(scan->prv->prv, scan->nxt, ++maxf);
       scan = MATE(scan->nxt->nxt);
     }

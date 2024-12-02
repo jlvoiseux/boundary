@@ -57,9 +57,9 @@ void ListSolidJson(bdSolid* s) {
         printf("              {\n");
         printf("                \"id\": %d,\n", he->vtx->vertexno);
         printf("                \"coords\": [%f, %f, %f],\n",
-               he->vtx->vcoord[X],
-               he->vtx->vcoord[Y],
-               he->vtx->vcoord[Z]);
+               he->vtx->vcoord[0],
+               he->vtx->vcoord[1],
+               he->vtx->vcoord[2]);
         printf("                \"halfEdges\": {\n");
         printf("                  \"next\": %d,\n", he->nxt->vtx->vertexno);
         printf("                  \"prev\": %d,\n", he->prv->vtx->vertexno);
@@ -163,7 +163,7 @@ int Match(bdHalfEdge* h1, bdHalfEdge* h2) {
 
   bdVertex* v1 = h1->vtx;
   bdVertex* v2 = h2->vtx;
-  return (ABS(v1->vcoord[X] - v2->vcoord[X]) < EPS &&
-          ABS(v1->vcoord[Y] - v2->vcoord[Y]) < EPS &&
-          ABS(v1->vcoord[Z] - v2->vcoord[Z]) < EPS);
+  return (ABS(v1->vcoord[0] - v2->vcoord[0]) < EPS &&
+          ABS(v1->vcoord[1] - v2->vcoord[1]) < EPS &&
+          ABS(v1->vcoord[2] - v2->vcoord[2]) < EPS);
 }

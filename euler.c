@@ -17,9 +17,9 @@ void Lmev(bdHalfEdge* he1, bdHalfEdge* he2, Id v, float x, float y, float z) {
   newedge = (bdEdge*)CreateNode(EDGE, (bdNode*)he1->wloop->lface->fsolid);
   newvertex = (bdVertex*)CreateNode(VERTEX, (bdNode*)he1->wloop->lface->fsolid);
 
-  newvertex->vcoord[X] = x;
-  newvertex->vcoord[Y] = y;
-  newvertex->vcoord[Z] = z;
+  newvertex->vcoord[0] = x;
+  newvertex->vcoord[1] = y;
+  newvertex->vcoord[2] = z;
   newvertex->vcoord[3] = 1.0f;
   newvertex->vertexno = v;
 
@@ -122,19 +122,27 @@ void Lkef(bdHalfEdge* he1, bdHalfEdge* he2) {
   bdLoop* l2 = he2->wloop;
   bdFace* f2 = l2->lface;
   bdEdge* killedge = he1->edg;
+  bdHalfEdge* next1 = he1->nxt;
+  bdHalfEdge* next2 = he2->nxt;
+  bdHalfEdge* prev1 = he1->prv;
+  bdHalfEdge* prev2 = he2->prv;
 
-  bdHalfEdge* curr = l2->ledg;
-  do {
-    curr->wloop = l1;
-    curr = curr->nxt;
-  } while (curr != l2->ledg);
+  bdHalfEdge* start = he2->nxt;
+  bdHalfEdge* curr = start;
+  if (curr != he1 && curr != he2) {
+    do {
+      curr->wloop = l1;
+      curr = curr->nxt;
+    } while (curr != start && curr != he1 && curr != he2);
+  }
 
-  he1->prv->nxt = he2->nxt;
-  he2->nxt->prv = he1->prv;
-  he2->prv->nxt = he1->nxt;
-  he1->nxt->prv = he2->prv;
+  prev1->nxt = next2;
+  next2->prv = prev1;
+  prev2->nxt = next1;
+  next1->prv = prev2;
 
-  l1->ledg = he1->nxt;
+  l1->ledg = next1;
+
   DeleteNode(HALFEDGE, (bdNode*)he1, NULL);
   DeleteNode(HALFEDGE, (bdNode*)he2, NULL);
   DeleteNode(EDGE, (bdNode*)killedge, (bdNode*)f2->fsolid);
@@ -185,12 +193,16 @@ void Lmekr(bdHalfEdge* he1, bdHalfEdge* he2) {
 
   bdLoop* l1 = he1->wloop;
   bdLoop* l2 = he2->wloop;
+  bdEdge* newedge = (bdEdge*)CreateNode(EDGE, (bdNode*)l1->lface->fsolid);
 
-  bdHalfEdge* temp = he2->nxt;
-  he2->nxt = he1->nxt;
-  he1->nxt->prv = he2;
-  he1->nxt = temp;
-  temp->prv = he1;
+  bdHalfEdge* nhe1 = AppendHalfEdge(newedge, he2->vtx, he1, PLUS);
+  bdHalfEdge* nhe2 = AppendHalfEdge(newedge, he1->vtx, he2, MINUS);
+
+  nhe1->prv->nxt = nhe2;
+  nhe2->prv->nxt = nhe1;
+  bdHalfEdge* temp = nhe1->prv;
+  nhe1->prv = nhe2->prv;
+  nhe2->prv = temp;
 
   bdHalfEdge* curr = he2;
   do {
@@ -233,8 +245,8 @@ bdFace* Lmfkrh(bdLoop* l, Id f) {
   Remove(LOOP, (bdNode*)l, (bdNode*)l->lface);
   Append(LOOP, (bdNode*)l, (bdNode*)newface);
 
-  newface->flout = l;
-  newface->floops = NULL;
+  newface->flout = NULL;
+  newface->floops = l;
 
   return newface;
 }
@@ -288,9 +300,9 @@ bdSolid* Mvfs(Id s, Id f, Id v, float x, float y, float z) {
   newhe->vtx = newvertex;
   newhe->edg = NULL;
   newvertex->vertexno = v;
-  newvertex->vcoord[X] = x;
-  newvertex->vcoord[Y] = y;
-  newvertex->vcoord[Z] = z;
+  newvertex->vcoord[0] = x;
+  newvertex->vcoord[1] = y;
+  newvertex->vcoord[2] = z;
   newvertex->vcoord[3] = 1.0f;
 
   return newsolid;
@@ -299,12 +311,13 @@ bdSolid* Mvfs(Id s, Id f, Id v, float x, float y, float z) {
 void Kvfs(bdSolid* s) {
   NULL_CHECK(s)
   NULL_CHECK(s->sfaces)
-  NULL_CHECK(s->sfaces->flout)
-  NULL_CHECK(s->sfaces->flout->ledg)
-  NULL_CHECK(s->sfaces->flout->ledg->vtx)
 
   bdFace* f = s->sfaces;
-  bdLoop* l = f->flout;
+  bdLoop* l = f->flout ? f->flout : f->floops;
+  NULL_CHECK(l)
+  NULL_CHECK(l->ledg)
+  NULL_CHECK(l->ledg->vtx)
+
   bdHalfEdge* he = l->ledg;
   bdVertex* v = he->vtx;
 
@@ -454,8 +467,8 @@ int Smef(Id s, Id f1, Id v1, Id v3, Id f2) {
   bdSolid* oldsolid;
   bdFace* oldface;
   bdHalfEdge* he1;
-  bdHalfEdge* start;
   bdHalfEdge* he2;
+  bdHalfEdge* curr;
   int found1 = 0;
   int found2 = 0;
 
@@ -471,18 +484,18 @@ int Smef(Id s, Id f1, Id v1, Id v3, Id f2) {
 
   bdLoop* l = oldface->floops;
   while (l && (!found1 || !found2)) {
-    start = l->ledg;
-    he1 = start;
+    curr = l->ledg;
     do {
-      if (he1->vtx->vertexno == v1 && !found1) {
+      if (curr->vtx->vertexno == v1 && !found1) {
+        he1 = curr;
         found1 = 1;
       }
-      if (he1->vtx->vertexno == v3 && !found2) {
-        he2 = he1;
+      if (curr->vtx->vertexno == v3 && !found2) {
+        he2 = curr;
         found2 = 1;
       }
-      he1 = he1->nxt;
-    } while (he1 != start);
+      curr = curr->nxt;
+    } while (curr != l->ledg);
     l = l->nextl;
   }
 
