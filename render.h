@@ -3,12 +3,18 @@
 #include <raylib.h>
 #include "prim.h"
 
+typedef enum {
+  RENDER_MODE_TESSELLATED,
+  RENDER_MODE_BREP
+} bdRenderMode;
+
 typedef struct {
   bdSolid* solid;
   Mesh mesh;
   Material mat;
   Matrix tr;
   bool mesh_dirty;
+  bdRenderMode mode;
 } bdRenderObject;
 
 void LoadShaders(Material* material);

@@ -20,7 +20,7 @@ void LoadShaders(Material* material) {
     return;
   }
 
-  rlSetCullFace(0);
+  rlDisableBackfaceCulling();
 
   int wire_width_loc = GetShaderLocation(shader, "wireWidth");
   int wire_color_loc = GetShaderLocation(shader, "wireColor");
@@ -70,8 +70,7 @@ void RenderGizmo(const Camera3D* mainCamera, float width, float height) {
   DrawText("Z", position.x + zAxis.x + labelOffset.x, position.y + zAxis.y + labelOffset.y, 10, BLUE);
 }
 
-void UpdateRenderObject(bdRenderObject* obj)
-{
+void UpdateRenderObject(bdRenderObject* obj) {
   if (obj->mesh_dirty) {
     if (obj->mesh.vboId && obj->mesh.vboId[0] > 0) {
       UnloadMesh(obj->mesh);

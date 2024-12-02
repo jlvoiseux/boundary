@@ -37,12 +37,13 @@ void InitCamera() {
 }
 
 void InitRenderObject() {
-  //g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
-  g_render_object.solid = Torus(1, 1.0f, 2.0f, 8, 8);
+  g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
+  //g_render_object.solid = Torus(1, 1.0f, 2.0f, 8, 8);
   g_render_object.mat = LoadMaterialDefault();
   LoadShaders(&g_render_object.mat);
   g_render_object.tr = MatrixIdentity();
   g_render_object.mesh_dirty = true;
+  g_render_object.mode = RENDER_MODE_TESSELLATED;
 }
 
 void GuiSetup(bool dark) {
@@ -238,6 +239,14 @@ void HandleCameraMovement() {
 void DrawControlsWindow() {
   igBegin("Controls", NULL, ImGuiWindowFlags_None);
 
+  if (igCollapsingHeader_TreeNodeFlags("Render Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+    const char* modes[] = {"Tessellated", "B-Rep"};
+    int current_mode = g_render_object.mode;
+    if (igCombo_Str_arr("View Mode", &current_mode, modes, 2, 2)) {
+      g_render_object.mode = current_mode;
+    }
+  }
+
   if (igCollapsingHeader_TreeNodeFlags("Export", ImGuiTreeNodeFlags_DefaultOpen)) {
     static char filepath[256] = {0};
     igInputText("STL Path", filepath, sizeof(filepath), ImGuiInputTextFlags_None, NULL, NULL);
@@ -327,7 +336,7 @@ void DrawViewportWindow() {
   igPopStyleColor(2);
   igEndChild();
 
-  if (igIsWindowFocused(ImGuiFocusedFlags_None)) {
+  if (igIsWindowHovered(ImGuiHoveredFlags_None)) {
     HandleViewSwitch();
     HandleCameraMovement();
   }
