@@ -20,19 +20,20 @@ void LoadShaders(Material* material) {
     return;
   }
 
-  rlDisableBackfaceCulling();
-
   int wire_width_loc = GetShaderLocation(shader, "wireWidth");
   int wire_color_loc = GetShaderLocation(shader, "wireColor");
   int face_color_loc = GetShaderLocation(shader, "faceColor");
+  int render_mode_loc = GetShaderLocation(shader, "renderMode");
 
   float wire_color[3] = {0.0f, 0.7f, 1.0f};
   float face_color[3] = {0.2f, 0.2f, 0.2f};
   float wire_width = 1.0f;
+  int render_mode = 0;
 
   SetShaderValue(shader, wire_width_loc, &wire_width, SHADER_UNIFORM_FLOAT);
   SetShaderValue(shader, wire_color_loc, wire_color, SHADER_UNIFORM_VEC3);
   SetShaderValue(shader, face_color_loc, face_color, SHADER_UNIFORM_VEC3);
+  SetShaderValue(shader, render_mode_loc, &render_mode, SHADER_UNIFORM_INT);
 
   material->shader = shader;
   material->maps[MATERIAL_MAP_DIFFUSE].color = WHITE;
@@ -85,8 +86,7 @@ void UpdateRenderObject(bdRenderObject* obj) {
     bdMesh* temp_mesh = TessellateSolid(obj->solid, &params);
     obj->mesh = ConvertToRaylibMesh(temp_mesh);
 
-    // Now explicitly upload to GPU
-    UploadMesh(&obj->mesh, true);  // Use dynamic if you plan to update buffers frequently
+    UploadMesh(&obj->mesh, true);
 
     FreeMesh(temp_mesh);
     obj->mesh_dirty = false;
@@ -94,7 +94,13 @@ void UpdateRenderObject(bdRenderObject* obj) {
 }
 
 void RenderMainView(const Camera3D* camera, const bdRenderObject* obj) {
+  int render_mode_loc = GetShaderLocation(obj->mat.shader, "renderMode");
+  int render_mode = obj->mode;
+  SetShaderValue(obj->mat.shader, render_mode_loc, &render_mode, SHADER_UNIFORM_INT);
+
   DrawGrid(50, 1.0f);
+  rlDisableBackfaceCulling();
   DrawMesh(obj->mesh, obj->mat, obj->tr);
+  rlEnableBackfaceCulling();
 }
 

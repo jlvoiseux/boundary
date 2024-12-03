@@ -18,7 +18,6 @@
 #define Z 2
 
 static RenderTexture2D g_viewport_texture;
-static Camera3D g_camera = {0};
 static bdCameraSystem g_camera_system = {0};
 static bdRenderObject g_render_object = {0};
 static bdToast g_toast = {0};
@@ -37,8 +36,8 @@ void InitCamera() {
 }
 
 void InitRenderObject() {
-  g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
-  //g_render_object.solid = Torus(1, 1.0f, 2.0f, 8, 8);
+  //g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
+  g_render_object.solid = Torus(1, 1.0f, 2.0f, 8, 8);
   g_render_object.mat = LoadMaterialDefault();
   LoadShaders(&g_render_object.mat);
   g_render_object.tr = MatrixIdentity();
@@ -240,10 +239,12 @@ void DrawControlsWindow() {
   igBegin("Controls", NULL, ImGuiWindowFlags_None);
 
   if (igCollapsingHeader_TreeNodeFlags("Render Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-    const char* modes[] = {"Tessellated", "B-Rep"};
-    int current_mode = g_render_object.mode;
-    if (igCombo_Str_arr("View Mode", &current_mode, modes, 2, 2)) {
-      g_render_object.mode = current_mode;
+    if (igRadioButton_Bool("Tessellated", g_render_object.mode == RENDER_MODE_TESSELLATED)) {
+      g_render_object.mode = RENDER_MODE_TESSELLATED;
+    }
+    
+    if (igRadioButton_Bool("Normals (B-Rep)", g_render_object.mode == RENDER_MODE_BREP)) {
+      g_render_object.mode = RENDER_MODE_BREP;
     }
   }
 

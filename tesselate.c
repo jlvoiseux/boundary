@@ -43,25 +43,32 @@ void TessellateFace(bdMesh* mesh, const bdFace* face, const bdTessellationParams
 
     ExtractLoopPoints(l, &points, &point_count);
 
-    if (point_count == 4) {
-      AddTriangle(mesh, points[0], points[1], points[2]);
-      AddTriangle(mesh, points[0], points[2], points[3]);
-    }
-    else if (point_count > 4) {
-      Vector3* concave_points = NULL;
-      int concave_count = 0;
+    if (point_count >= 3) {
+      Vector3 v1 = points[0];
+      Vector3 v2 = points[1];
+      Vector3 v3 = points[2];
+      Vector3 face_normal = Vector3Normalize(CalculateNormal(v1, v2, v3));
 
-      FindConcaveVertices(points, point_count, &concave_points, &concave_count);
-
-      if (concave_count > 0) {
-        HandleConcavePolygon(mesh, points, point_count, concave_points, concave_count);
-      } else {
-        TriangulateConvexPolygon(mesh, points, point_count);
+      if (point_count == 4) {
+        AddTriangle(mesh, points[0], points[1], points[2], face_normal);
+        AddTriangle(mesh, points[0], points[2], points[3], face_normal);
       }
+      else if (point_count > 4) {
+        Vector3* concave_points = NULL;
+        int concave_count = 0;
 
-      free(concave_points);
-    } else if (point_count == 3) {
-      AddTriangle(mesh, points[0], points[1], points[2]);
+        FindConcaveVertices(points, point_count, &concave_points, &concave_count);
+
+        if (concave_count > 0) {
+          HandleConcavePolygon(mesh, points, point_count, concave_points, concave_count, face_normal);
+        } else {
+          TriangulateConvexPolygon(mesh, points, point_count, face_normal);
+        }
+
+        free(concave_points);
+      } else if (point_count == 3) {
+        AddTriangle(mesh, points[0], points[1], points[2], face_normal);
+      }
     }
 
     free(points);
@@ -195,7 +202,7 @@ void FindVisibleVertices(const Vector3* points, int point_count, int from_idx,
 }
 
 void HandleConcavePolygon(bdMesh* mesh, const Vector3* points, int point_count,
-                          const Vector3* concave_points, int concave_count) {
+                          const Vector3* concave_points, int concave_count, Vector3 normal) {
   for (int i = 0; i < concave_count; i++) {
     int concave_idx = 0;
     for (int j = 0; j < point_count; j++) {
@@ -214,21 +221,21 @@ void HandleConcavePolygon(bdMesh* mesh, const Vector3* points, int point_count,
       int best_connection = FindBestConnection(concave_points[i], visible_vertices, visible_count);
       AddTriangle(mesh, concave_points[i],
                   visible_vertices[best_connection],
-                  visible_vertices[(best_connection + 1) % visible_count]);
+                  visible_vertices[(best_connection + 1) % visible_count], normal);
     }
 
     free(visible_vertices);
   }
 }
 
-void TriangulateConvexPolygon(bdMesh* mesh, const Vector3* points, int point_count) {
+void TriangulateConvexPolygon(bdMesh* mesh, const Vector3* points, int point_count, Vector3 normal) {
   NULL_CHECK(mesh);
   NULL_CHECK(points);
 
   if (point_count < 3) return;
 
   for (int i = 1; i < point_count - 1; i++) {
-    AddTriangle(mesh, points[0], points[i], points[i + 1]);
+    AddTriangle(mesh, points[0], points[i], points[i + 1], normal);
   }
 }
 
@@ -279,7 +286,7 @@ int AddVertex(bdMesh* mesh, Vector3 position) {
   return idx;
 }
 
-void AddTriangle(bdMesh* mesh, Vector3 v1, Vector3 v2, Vector3 v3) {
+void AddTriangle(bdMesh* mesh, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 normal) {
   if (mesh->triangle_count >= mesh->triangle_capacity) {
     mesh->triangle_capacity *= 2;
     mesh->triangles = (bdTriangle*)realloc(mesh->triangles,
@@ -290,13 +297,14 @@ void AddTriangle(bdMesh* mesh, Vector3 v1, Vector3 v2, Vector3 v3) {
   mesh->triangles[idx].v1 = AddVertex(mesh, v1);
   mesh->triangles[idx].v2 = AddVertex(mesh, v2);
   mesh->triangles[idx].v3 = AddVertex(mesh, v3);
+  mesh->triangles[idx].face_normal = normal;
 }
 
 Mesh ConvertToRaylibMesh(const bdMesh* mesh) {
   NULL_CHECK_RET(mesh, (Mesh){0});
 
   Mesh raylibMesh = {0};
-  raylibMesh.vertexCount = mesh->vertex_count * 3;  // Multiply by 3 as each vertex needs unique barycentric coords
+  raylibMesh.vertexCount = mesh->vertex_count * 3;
   raylibMesh.triangleCount = mesh->triangle_count;
 
   raylibMesh.vertices = RL_MALLOC(raylibMesh.vertexCount * 3 * sizeof(float));
@@ -308,21 +316,36 @@ Mesh ConvertToRaylibMesh(const bdMesh* mesh) {
     int base = i * 9;
     int texbase = i * 6;
 
+    Vector3 normal = {
+        mesh->triangles[i].face_normal.x,
+        mesh->triangles[i].face_normal.y,
+        mesh->triangles[i].face_normal.z
+    };
+
     raylibMesh.vertices[base] = mesh->vertices[mesh->triangles[i].v1].position.x;
     raylibMesh.vertices[base + 1] = mesh->vertices[mesh->triangles[i].v1].position.y;
     raylibMesh.vertices[base + 2] = mesh->vertices[mesh->triangles[i].v1].position.z;
+    raylibMesh.normals[base] = normal.x;
+    raylibMesh.normals[base + 1] = normal.y;
+    raylibMesh.normals[base + 2] = normal.z;
     raylibMesh.texcoords[texbase] = 1.0f;
     raylibMesh.texcoords[texbase + 1] = 0.0f;
 
     raylibMesh.vertices[base + 3] = mesh->vertices[mesh->triangles[i].v2].position.x;
     raylibMesh.vertices[base + 4] = mesh->vertices[mesh->triangles[i].v2].position.y;
     raylibMesh.vertices[base + 5] = mesh->vertices[mesh->triangles[i].v2].position.z;
+    raylibMesh.normals[base + 3] = normal.x;
+    raylibMesh.normals[base + 4] = normal.y;
+    raylibMesh.normals[base + 5] = normal.z;
     raylibMesh.texcoords[texbase + 2] = 0.0f;
     raylibMesh.texcoords[texbase + 3] = 1.0f;
 
     raylibMesh.vertices[base + 6] = mesh->vertices[mesh->triangles[i].v3].position.x;
     raylibMesh.vertices[base + 7] = mesh->vertices[mesh->triangles[i].v3].position.y;
     raylibMesh.vertices[base + 8] = mesh->vertices[mesh->triangles[i].v3].position.z;
+    raylibMesh.normals[base + 6] = normal.x;
+    raylibMesh.normals[base + 7] = normal.y;
+    raylibMesh.normals[base + 8] = normal.z;
     raylibMesh.texcoords[texbase + 4] = 0.0f;
     raylibMesh.texcoords[texbase + 5] = 0.0f;
 
