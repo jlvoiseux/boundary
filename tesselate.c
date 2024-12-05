@@ -3,147 +3,64 @@
 #endif
 
 #include "tesselate.h"
-
 #include <malloc.h>
 #include <raymath.h>
 #include <stdint.h>
 #include <stdio.h>
-
+#include <string.h>
 #include "defines.h"
 
-bdMesh* TessellateSolid(const bdSolid* solid, const bdTessellationParams* params) {
-  NULL_CHECK_RET(solid, NULL);
-  NULL_CHECK_RET(params, NULL);
+    typedef struct {
+  Vector3 position;
+  int index;
+  int isEar;
+} bdVertexNode;
 
-  bdMesh* mesh = (bdMesh*)malloc(sizeof(bdMesh));
-  mesh->vertex_capacity = 1024;
-  mesh->triangle_capacity = 1024;
-  mesh->vertices = (bdMeshVertex*)malloc(sizeof(bdMeshVertex) * mesh->vertex_capacity);
-  mesh->triangles = (bdTriangle*)malloc(sizeof(bdTriangle) * mesh->triangle_capacity);
-  mesh->vertex_count = 0;
-  mesh->triangle_count = 0;
+static float SignedArea3D(Vector3 a, Vector3 b, Vector3 c, Vector3 normal) {
+  Vector3 ab = Vector3Subtract(b, a);
+  Vector3 ac = Vector3Subtract(c, a);
+  Vector3 cross = Vector3CrossProduct(ab, ac);
+  return Vector3DotProduct(cross, normal);
+}
 
-  bdFace* f = solid->sfaces;
-  while (f) {
-    TessellateFace(mesh, f, params);
-    f = f->nextf;
+static int IsPointInTriangle3D(Vector3 p, Vector3 a, Vector3 b, Vector3 c, Vector3 normal) {
+  float area = SignedArea3D(a, b, c, normal);
+  float s1 = SignedArea3D(p, a, b, normal);
+  float s2 = SignedArea3D(p, b, c, normal);
+  float s3 = SignedArea3D(p, c, a, normal);
+
+  if (ABS(area) < EPS) return 0;
+  float r1 = s1 / area;
+  float r2 = s2 / area;
+  float r3 = s3 / area;
+
+  return (r1 >= -EPS && r2 >= -EPS && r3 >= -EPS);
+}
+
+static int IsEar(bdVertexNode* vertices, int count, int i, Vector3 normal) {
+  if (count < 4) return 1;
+
+  int prev = (i - 1 + count) % count;
+  int next = (i + 1) % count;
+  Vector3 a = vertices[prev].position;
+  Vector3 b = vertices[i].position;
+  Vector3 c = vertices[next].position;
+
+  if (SignedArea3D(a, b, c, normal) <= 0) return 0;
+
+  for (int j = 0; j < count; j++) {
+    if (j == prev || j == i || j == next) continue;
+    if (IsPointInTriangle3D(vertices[j].position, a, b, c, normal)) return 0;
   }
 
-  return mesh;
+  return 1;
 }
 
-static int CompareVertices(const void* a, const void* b) {
-  const bdOrderedVertex* va = (const bdOrderedVertex*)a;
-  const bdOrderedVertex* vb = (const bdOrderedVertex*)b;
-  if (va->angle < vb->angle) return -1;
-  if (va->angle > vb->angle) return 1;
-  return 0;
+static void UpdateVertexType(bdVertexNode* vertices, int count, int i, Vector3 normal) {
+  vertices[i].isEar = IsEar(vertices, count, i, normal);
 }
 
-void TessellateFace(bdMesh* mesh, const bdFace* face, const bdTessellationParams* params) {
-  NULL_CHECK(mesh);
-  NULL_CHECK(face);
-
-  bdLoop* l = face->floops;
-  while (l) {
-    Vector3* points = NULL;
-    int point_count = 0;
-
-    ExtractLoopPoints(l, &points, &point_count);
-
-    if (point_count >= 3) {
-      Vector3 centroid = {0};
-      for (int i = 0; i < point_count; i++) {
-        centroid.x += points[i].x;
-        centroid.y += points[i].y;
-        centroid.z += points[i].z;
-      }
-      centroid.x /= point_count;
-      centroid.y /= point_count;
-      centroid.z /= point_count;
-
-      Vector3 v1 = points[0];
-      Vector3 v2 = points[1];
-      Vector3 v3 = points[2];
-      Vector3 face_normal = Vector3Normalize(CalculateNormal(v1, v2, v3));
-
-      if (point_count > 8) {
-        bdOrderedVertex* ordered = malloc(sizeof(bdOrderedVertex) * point_count);
-
-        Vector3 ref_dir = Vector3Subtract(points[0], centroid);
-        for (int i = 0; i < point_count; i++) {
-          Vector3 curr_dir = Vector3Subtract(points[i], centroid);
-
-          float dot = Vector3DotProduct(ref_dir, curr_dir);
-          float det = ref_dir.x * curr_dir.y - ref_dir.y * curr_dir.x;
-
-          ordered[i].position = points[i];
-          ordered[i].angle = atan2f(det, dot);
-          if (ordered[i].angle < 0) {
-            ordered[i].angle += 2 * PI;
-          }
-          ordered[i].index = i;
-        }
-
-        qsort(ordered, point_count, sizeof(bdOrderedVertex), CompareVertices);
-
-        int center_idx = AddVertex(mesh, centroid);
-        int prev_outer = AddVertex(mesh, ordered[0].position);
-        int first_outer = prev_outer;
-
-        for (int i = 1; i < point_count; i++) {
-          int curr_outer = AddVertex(mesh, ordered[i].position);
-          float angle_diff = ordered[i].angle - ordered[i-1].angle;
-
-          if (angle_diff > PI/4) {
-            int mid_count = (int)(angle_diff / (PI/4));
-            for (int j = 0; j < mid_count; j++) {
-              float t = (j + 1.0f) / (mid_count + 1);
-              float mid_angle = ordered[i-1].angle + angle_diff * t;
-              float radius = Vector3Length(Vector3Subtract(ordered[i-1].position, centroid));
-
-              Vector3 mid_pos = {
-                  centroid.x + cosf(mid_angle) * radius,
-                  centroid.y + sinf(mid_angle) * radius,
-                  centroid.z
-              };
-
-              int mid_idx = AddVertex(mesh, mid_pos);
-              AddTriangle(mesh,
-                          mesh->vertices[center_idx].position,
-                          mesh->vertices[prev_outer].position,
-                          mesh->vertices[mid_idx].position,
-                          face_normal);
-              prev_outer = mid_idx;
-            }
-          }
-
-          AddTriangle(mesh,
-                      mesh->vertices[center_idx].position,
-                      mesh->vertices[prev_outer].position,
-                      mesh->vertices[curr_outer].position,
-                      face_normal);
-          prev_outer = curr_outer;
-        }
-
-        AddTriangle(mesh,
-                    mesh->vertices[center_idx].position,
-                    mesh->vertices[prev_outer].position,
-                    mesh->vertices[first_outer].position,
-                    face_normal);
-
-        free(ordered);
-      } else {
-        TriangulateConvexPolygon(mesh, points, point_count, face_normal);
-      }
-    }
-
-    free(points);
-    l = l->nextl;
-  }
-}
-
-void ExtractLoopPoints(const bdLoop* loop, Vector3** points, int* point_count) {
+static void ExtractLoopPoints(const bdLoop* loop, Vector3** points, int* point_count) {
   NULL_CHECK(loop);
   NULL_CHECK(points);
   NULL_CHECK(point_count);
@@ -157,7 +74,7 @@ void ExtractLoopPoints(const bdLoop* loop, Vector3** points, int* point_count) {
     current = current->nxt;
   } while (current != start);
 
-  *points = (Vector3*)malloc(sizeof(Vector3) * count);
+  *points = malloc(sizeof(Vector3) * count);
   *point_count = count;
 
   current = start;
@@ -171,181 +88,16 @@ void ExtractLoopPoints(const bdLoop* loop, Vector3** points, int* point_count) {
   } while (current != start);
 }
 
-Vector3 CalculateNormal(Vector3 v1, Vector3 v2, Vector3 v3) {
+static Vector3 CalculateNormal(Vector3 v1, Vector3 v2, Vector3 v3) {
   Vector3 edge1 = Vector3Subtract(v2, v1);
   Vector3 edge2 = Vector3Subtract(v3, v1);
   return Vector3Normalize(Vector3CrossProduct(edge1, edge2));
 }
 
-float CalculateAngle(Vector3 prev, Vector3 current, Vector3 next) {
-  Vector3 v1 = Vector3Subtract(prev, current);
-  Vector3 v2 = Vector3Subtract(next, current);
-
-  float dot = Vector3DotProduct(Vector3Normalize(v1), Vector3Normalize(v2));
-  return acosf(Clamp(dot, -1.0f, 1.0f)) * RAD2DEG;
-}
-
-void FindConcaveVertices(const Vector3* points, int point_count,
-                         Vector3** concave_points, int* concave_count) {
-  NULL_CHECK(points);
-  NULL_CHECK(concave_points);
-  NULL_CHECK(concave_count);
-
-  Vector3* result = (Vector3*)malloc(sizeof(Vector3) * point_count);
-  int count = 0;
-
-  Vector3 normal = CalculateNormal(points[0], points[1], points[2]);
-
-  for (int i = 0; i < point_count; i++) {
-    Vector3 prev = points[(i - 1 + point_count) % point_count];
-    Vector3 current = points[i];
-    Vector3 next = points[(i + 1) % point_count];
-
-    Vector3 edge1 = Vector3Subtract(prev, current);
-    Vector3 edge2 = Vector3Subtract(next, current);
-
-    Vector3 cross = Vector3CrossProduct(edge1, edge2);
-    float dot = Vector3DotProduct(cross, normal);
-
-    if (dot < 0) {
-      result[count++] = current;
-    }
-  }
-
-  *concave_points = result;
-  *concave_count = count;
-}
-
-bool IsPointVisible(Vector3 from, Vector3 to, const Vector3* points, int point_count) {
-  Vector3 direction = Vector3Subtract(to, from);
-  float distance = Vector3Length(direction);
-  direction = Vector3Scale(direction, 1.0f / distance);
-
-  for (int i = 0; i < point_count; i++) {
-    Vector3 p1 = points[i];
-    Vector3 p2 = points[(i + 1) % point_count];
-
-    Vector3 v1 = Vector3Subtract(p1, from);
-    Vector3 v2 = Vector3Subtract(p2, from);
-
-    Vector3 normal = Vector3CrossProduct(v1, v2);
-    if (Vector3Length(normal) < EPS) continue;
-
-    float t = Vector3DotProduct(Vector3Subtract(p1, from), normal) /
-              Vector3DotProduct(direction, normal);
-
-    if (t > EPS && t < distance - EPS) {
-      Vector3 intersection = Vector3Add(from, Vector3Scale(direction, t));
-      if (IsPointOnLineSegment(intersection, p1, p2)) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-void FindVisibleVertices(const Vector3* points, int point_count, int from_idx,
-                         Vector3** visible, int* visible_count) {
-  NULL_CHECK(points);
-  NULL_CHECK(visible);
-  NULL_CHECK(visible_count);
-
-  Vector3* result = (Vector3*)malloc(sizeof(Vector3) * point_count);
-  int count = 0;
-
-  Vector3 from = points[from_idx];
-
-  for (int i = 0; i < point_count; i++) {
-    if (i == from_idx) continue;
-
-    if (IsPointVisible(from, points[i], points, point_count)) {
-      result[count++] = points[i];
-    }
-  }
-
-  *visible = result;
-  *visible_count = count;
-}
-
-void HandleConcavePolygon(bdMesh* mesh, const Vector3* points, int point_count,
-                          const Vector3* concave_points, int concave_count, Vector3 normal) {
-  for (int i = 0; i < concave_count; i++) {
-    int concave_idx = 0;
-    for (int j = 0; j < point_count; j++) {
-      if (Vector3Equals(points[j], concave_points[i])) {
-        concave_idx = j;
-        break;
-      }
-    }
-
-    Vector3* visible_vertices = NULL;
-    int visible_count = 0;
-
-    FindVisibleVertices(points, point_count, concave_idx, &visible_vertices, &visible_count);
-
-    if (visible_count > 0) {
-      int best_connection = FindBestConnection(concave_points[i], visible_vertices, visible_count);
-      AddTriangle(mesh, concave_points[i],
-                  visible_vertices[best_connection],
-                  visible_vertices[(best_connection + 1) % visible_count], normal);
-    }
-
-    free(visible_vertices);
-  }
-}
-
-void TriangulateConvexPolygon(bdMesh* mesh, const Vector3* points, int point_count, Vector3 normal) {
-  NULL_CHECK(mesh);
-  NULL_CHECK(points);
-
-  if (point_count < 3) return;
-
-  for (int i = 1; i < point_count - 1; i++) {
-    AddTriangle(mesh, points[0], points[i], points[i + 1], normal);
-  }
-}
-
-int FindBestConnection(Vector3 from, const Vector3* to_points, int point_count) {
-  if (point_count == 0) return -1;
-  if (point_count == 1) return 0;
-
-  float best_angle = 0;
-  int best_idx = 0;
-
-  for (int i = 0; i < point_count; i++) {
-    Vector3 prev = to_points[(i - 1 + point_count) % point_count];
-    Vector3 current = to_points[i];
-    Vector3 next = to_points[(i + 1) % point_count];
-
-    float angle = CalculateAngle(prev, current, next);
-    if (angle > best_angle) {
-      best_angle = angle;
-      best_idx = i;
-    }
-  }
-
-  return best_idx;
-}
-
-bool IsPointOnLineSegment(Vector3 point, Vector3 a, Vector3 b) {
-  Vector3 ab = Vector3Subtract(b, a);
-  Vector3 ap = Vector3Subtract(point, a);
-
-  float dot = Vector3DotProduct(ap, ab);
-  float len_sq = Vector3DotProduct(ab, ab);
-
-  if (dot < 0 || dot > len_sq) return false;
-
-  float d = Vector3Length(Vector3CrossProduct(ap, ab)) / Vector3Length(ab);
-  return d < EPS;
-}
-
-int AddVertex(bdMesh* mesh, Vector3 position) {
+static int AddVertex(bdMesh* mesh, Vector3 position) {
   if (mesh->vertex_count >= mesh->vertex_capacity) {
     mesh->vertex_capacity *= 2;
-    mesh->vertices = (bdMeshVertex*)realloc(mesh->vertices,
-                                          sizeof(bdMeshVertex) * mesh->vertex_capacity);
+    mesh->vertices = realloc(mesh->vertices, sizeof(bdMeshVertex) * mesh->vertex_capacity);
   }
 
   int idx = mesh->vertex_count++;
@@ -353,11 +105,10 @@ int AddVertex(bdMesh* mesh, Vector3 position) {
   return idx;
 }
 
-void AddTriangle(bdMesh* mesh, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 normal) {
+static void AddTriangle(bdMesh* mesh, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 normal) {
   if (mesh->triangle_count >= mesh->triangle_capacity) {
     mesh->triangle_capacity *= 2;
-    mesh->triangles = (bdTriangle*)realloc(mesh->triangles,
-                                           sizeof(bdTriangle) * mesh->triangle_capacity);
+    mesh->triangles = realloc(mesh->triangles, sizeof(bdTriangle) * mesh->triangle_capacity);
   }
 
   int idx = mesh->triangle_count++;
@@ -366,6 +117,115 @@ void AddTriangle(bdMesh* mesh, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 norma
   mesh->triangles[idx].v3 = AddVertex(mesh, v3);
   mesh->triangles[idx].face_normal = normal;
 }
+
+static void TriangulatePolygon(bdMesh* mesh, Vector3* points, int point_count, Vector3 normal) {
+  if (point_count < 3) return;
+  if (point_count == 3) {
+    AddTriangle(mesh, points[0], points[1], points[2], normal);
+    return;
+  }
+
+  bdVertexNode* vertices = malloc(sizeof(bdVertexNode) * point_count);
+  int remaining = point_count;
+
+  for (int i = 0; i < point_count; i++) {
+    vertices[i].position = points[i];
+    vertices[i].index = i;
+  }
+
+  for (int i = 0; i < point_count; i++) {
+    UpdateVertexType(vertices, point_count, i, normal);
+  }
+
+  while (remaining > 3) {
+    int earFound = 0;
+
+    for (int i = 0; i < point_count; i++) {
+      if (vertices[i].index == -1 || !vertices[i].isEar) continue;
+
+      int prev = i;
+      int curr = i;
+      while (vertices[prev = ((prev - 1 + point_count) % point_count)].index == -1);
+      while (vertices[curr = ((curr + 1) % point_count)].index == -1);
+
+      AddTriangle(mesh, vertices[prev].position, vertices[i].position,
+                  vertices[curr].position, normal);
+
+      vertices[i].index = -1;
+      remaining--;
+      earFound = 1;
+
+      if (remaining > 3) {
+        UpdateVertexType(vertices, point_count, prev, normal);
+        UpdateVertexType(vertices, point_count, curr, normal);
+      }
+
+      break;
+    }
+
+    if (!earFound) break;
+  }
+
+  if (remaining == 3) {
+    int first = -1;
+    for (int i = 0; i < point_count; i++) {
+      if (vertices[i].index != -1) {
+        if (first == -1) {
+          first = i;
+        } else if (vertices[(i + 1) % point_count].index != -1) {
+          AddTriangle(mesh, vertices[first].position, vertices[i].position,
+                      vertices[(i + 1) % point_count].position, normal);
+          break;
+        }
+      }
+    }
+  }
+
+  free(vertices);
+}
+
+static void TessellateFace(bdMesh* mesh, const bdFace* face, const bdTessellationParams* params) {
+  NULL_CHECK(mesh);
+  NULL_CHECK(face);
+
+  bdLoop* l = face->floops;
+  while (l) {
+    Vector3* points = NULL;
+    int point_count = 0;
+
+    ExtractLoopPoints(l, &points, &point_count);
+
+    if (point_count >= 3) {
+      Vector3 normal = CalculateNormal(points[0], points[1], points[2]);
+      TriangulatePolygon(mesh, points, point_count, normal);
+    }
+
+    free(points);
+    l = l->nextl;
+  }
+}
+
+bdMesh* TessellateSolid(const bdSolid* solid, const bdTessellationParams* params) {
+  NULL_CHECK_RET(solid, NULL);
+  NULL_CHECK_RET(params, NULL);
+
+  bdMesh* mesh = malloc(sizeof(bdMesh));
+  mesh->vertex_capacity = 1024;
+  mesh->triangle_capacity = 1024;
+  mesh->vertices = malloc(sizeof(bdMeshVertex) * mesh->vertex_capacity);
+  mesh->triangles = malloc(sizeof(bdTriangle) * mesh->triangle_capacity);
+  mesh->vertex_count = 0;
+  mesh->triangle_count = 0;
+
+  bdFace* f = solid->sfaces;
+  while (f) {
+    TessellateFace(mesh, f, params);
+    f = f->nextf;
+  }
+
+  return mesh;
+}
+
 
 Mesh ConvertToRaylibMesh(const bdMesh* mesh) {
   NULL_CHECK_RET(mesh, (Mesh){0});

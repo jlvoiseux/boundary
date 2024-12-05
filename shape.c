@@ -39,7 +39,7 @@ bdSolid* Circle(Id sn, float cx, float cy, float rad, float h, int n) {
   return s;
 }
 
-bdSolid* Block(Id sn, float dx, float dy, float dz) {
+bdSolid* Cube(Id sn, float dx, float dy, float dz) {
   bdSolid* s;
 
   s = Mvfs(sn, 1, 1, 0.0f, 0.0f, 0.0f);
@@ -59,7 +59,7 @@ bdSolid* Cyl(Id sn, float rad, float h, int n) {
   return s;
 }
 
-bdSolid* Ball(Id sn, float rad, int nver, int nhor) {
+bdSolid* Sphere(Id sn, float rad, int nver, int nhor) {
   bdSolid* s;
 
   s = Mvfs(sn, 1, 1, -rad, 0.0f, 0.0f);

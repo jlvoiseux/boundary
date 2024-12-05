@@ -38,7 +38,7 @@ void InitCamera() {
 }
 
 void InitRenderObject() {
-  g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
+  g_render_object.solid = Torus(1, 1.0f, 2.0f, 32, 32);
   g_render_object.mat = LoadMaterialDefault();
   LoadShaders(&g_render_object.mat);
   g_render_object.tr = MatrixIdentity();

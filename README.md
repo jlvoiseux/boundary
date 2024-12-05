@@ -12,7 +12,7 @@ SWEEP 2 0.0 0.0 2.0
 
 ### Cylinder
 
-//bdSolid* block = Block(1, 2.0f, 2.0f, 2.0f);
-//bdSolid* cyl = Cyl(1, 2.0f, 2.0f, 8);
-//bdSolid* ball = Ball(1, 2.0f, 8, 8);
-//bdSolid* torus = Torus(1, 1.5f, 2.0f, 8, 8);
+//bdSolid* cube = Cube(1, 2.0f, 2.0f, 2.0f);
+//bdSolid* cyl = Cyl(1, 2.0f, 2.0f, 32);
+//bdSolid* sphere = Sphere(1, 2.0f, 32, 32);
+//bdSolid* torus = Torus(1, 1.0f, 2.0f, 32, 32);
