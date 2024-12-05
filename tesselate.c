@@ -32,6 +32,14 @@ bdMesh* TessellateSolid(const bdSolid* solid, const bdTessellationParams* params
   return mesh;
 }
 
+static int CompareVertices(const void* a, const void* b) {
+  const bdOrderedVertex* va = (const bdOrderedVertex*)a;
+  const bdOrderedVertex* vb = (const bdOrderedVertex*)b;
+  if (va->angle < vb->angle) return -1;
+  if (va->angle > vb->angle) return 1;
+  return 0;
+}
+
 void TessellateFace(bdMesh* mesh, const bdFace* face, const bdTessellationParams* params) {
   NULL_CHECK(mesh);
   NULL_CHECK(face);
@@ -44,30 +52,89 @@ void TessellateFace(bdMesh* mesh, const bdFace* face, const bdTessellationParams
     ExtractLoopPoints(l, &points, &point_count);
 
     if (point_count >= 3) {
+      Vector3 centroid = {0};
+      for (int i = 0; i < point_count; i++) {
+        centroid.x += points[i].x;
+        centroid.y += points[i].y;
+        centroid.z += points[i].z;
+      }
+      centroid.x /= point_count;
+      centroid.y /= point_count;
+      centroid.z /= point_count;
+
       Vector3 v1 = points[0];
       Vector3 v2 = points[1];
       Vector3 v3 = points[2];
       Vector3 face_normal = Vector3Normalize(CalculateNormal(v1, v2, v3));
 
-      if (point_count == 4) {
-        AddTriangle(mesh, points[0], points[1], points[2], face_normal);
-        AddTriangle(mesh, points[0], points[2], points[3], face_normal);
-      }
-      else if (point_count > 4) {
-        Vector3* concave_points = NULL;
-        int concave_count = 0;
+      if (point_count > 8) {
+        bdOrderedVertex* ordered = malloc(sizeof(bdOrderedVertex) * point_count);
 
-        FindConcaveVertices(points, point_count, &concave_points, &concave_count);
+        Vector3 ref_dir = Vector3Subtract(points[0], centroid);
+        for (int i = 0; i < point_count; i++) {
+          Vector3 curr_dir = Vector3Subtract(points[i], centroid);
 
-        if (concave_count > 0) {
-          HandleConcavePolygon(mesh, points, point_count, concave_points, concave_count, face_normal);
-        } else {
-          TriangulateConvexPolygon(mesh, points, point_count, face_normal);
+          float dot = Vector3DotProduct(ref_dir, curr_dir);
+          float det = ref_dir.x * curr_dir.y - ref_dir.y * curr_dir.x;
+
+          ordered[i].position = points[i];
+          ordered[i].angle = atan2f(det, dot);
+          if (ordered[i].angle < 0) {
+            ordered[i].angle += 2 * PI;
+          }
+          ordered[i].index = i;
         }
 
-        free(concave_points);
-      } else if (point_count == 3) {
-        AddTriangle(mesh, points[0], points[1], points[2], face_normal);
+        qsort(ordered, point_count, sizeof(bdOrderedVertex), CompareVertices);
+
+        int center_idx = AddVertex(mesh, centroid);
+        int prev_outer = AddVertex(mesh, ordered[0].position);
+        int first_outer = prev_outer;
+
+        for (int i = 1; i < point_count; i++) {
+          int curr_outer = AddVertex(mesh, ordered[i].position);
+          float angle_diff = ordered[i].angle - ordered[i-1].angle;
+
+          if (angle_diff > PI/4) {
+            int mid_count = (int)(angle_diff / (PI/4));
+            for (int j = 0; j < mid_count; j++) {
+              float t = (j + 1.0f) / (mid_count + 1);
+              float mid_angle = ordered[i-1].angle + angle_diff * t;
+              float radius = Vector3Length(Vector3Subtract(ordered[i-1].position, centroid));
+
+              Vector3 mid_pos = {
+                  centroid.x + cosf(mid_angle) * radius,
+                  centroid.y + sinf(mid_angle) * radius,
+                  centroid.z
+              };
+
+              int mid_idx = AddVertex(mesh, mid_pos);
+              AddTriangle(mesh,
+                          mesh->vertices[center_idx].position,
+                          mesh->vertices[prev_outer].position,
+                          mesh->vertices[mid_idx].position,
+                          face_normal);
+              prev_outer = mid_idx;
+            }
+          }
+
+          AddTriangle(mesh,
+                      mesh->vertices[center_idx].position,
+                      mesh->vertices[prev_outer].position,
+                      mesh->vertices[curr_outer].position,
+                      face_normal);
+          prev_outer = curr_outer;
+        }
+
+        AddTriangle(mesh,
+                    mesh->vertices[center_idx].position,
+                    mesh->vertices[prev_outer].position,
+                    mesh->vertices[first_outer].position,
+                    face_normal);
+
+        free(ordered);
+      } else {
+        TriangulateConvexPolygon(mesh, points, point_count, face_normal);
       }
     }
 

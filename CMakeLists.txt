@@ -35,6 +35,8 @@ add_executable(
         render.c
         tesselate.c
         tesselate.h
+        parse.c
+        parse.h
 )
 
 set_target_properties(boundary PROPERTIES LINKER_LANGUAGE CXX)

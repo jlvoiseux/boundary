@@ -11,6 +11,12 @@ typedef struct {
 } bdMeshVertex;
 
 typedef struct {
+  Vector3 position;
+  float angle;
+  int index;
+} bdOrderedVertex;
+
+typedef struct {
   int v1;
   int v2;
   int v3;

@@ -15,6 +15,7 @@ typedef struct {
   Matrix tr;
   bool mesh_dirty;
   bdRenderMode mode;
+  char script[4096];
 } bdRenderObject;
 
 void LoadShaders(Material* material);

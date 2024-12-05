@@ -5,10 +5,12 @@
 #include "gui.h"
 
 #include <float.h>
-#include <string.h>
 #include <malloc.h>
 #include <raymath.h>
+#include <string.h>
 
+#include "euler.h"
+#include "parse.h"
 #include "render.h"
 #include "shape.h"
 #include "tesselate.h"
@@ -36,8 +38,7 @@ void InitCamera() {
 }
 
 void InitRenderObject() {
-  //g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
-  g_render_object.solid = Torus(1, 1.0f, 2.0f, 8, 8);
+  g_render_object.solid = Block(1, 2.0f, 2.0f, 2.0f);
   g_render_object.mat = LoadMaterialDefault();
   LoadShaders(&g_render_object.mat);
   g_render_object.tr = MatrixIdentity();
@@ -245,6 +246,29 @@ void DrawControlsWindow() {
     
     if (igRadioButton_Bool("Normals (B-Rep)", g_render_object.mode == RENDER_MODE_BREP)) {
       g_render_object.mode = RENDER_MODE_BREP;
+    }
+  }
+
+  if (igCollapsingHeader_TreeNodeFlags("Script", ImGuiTreeNodeFlags_DefaultOpen)) {
+    igInputTextMultiline("##script", g_render_object.script,
+                         sizeof(g_render_object.script),
+                         (ImVec2){0, 200}, ImGuiInputTextFlags_AllowTabInput, NULL,
+                         NULL);
+
+    if (igButton("Execute", (ImVec2){120, 0})) {
+      char error_msg[256] = {0};
+      bdSolid* new_solid = ExecuteCommands(g_render_object.script, error_msg, sizeof(error_msg));
+
+      if (new_solid) {
+        if (g_render_object.solid) {
+          Kvfs(g_render_object.solid);
+        }
+        g_render_object.solid = new_solid;
+        g_render_object.mesh_dirty = true;
+        ShowToast("Script executed successfully", false);
+      } else {
+        ShowToast(error_msg, true);
+      }
     }
   }
 
