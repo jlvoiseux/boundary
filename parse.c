@@ -5,8 +5,6 @@
 #include <string.h>
 
 #include "euler.h"
-#include "scan.h"
-#include "shape.h"
 #include "transform.h"
 
 static bdCommand CreateErrorCommand(const char* msg) {
@@ -54,9 +52,6 @@ bdCommand ParseCommand(const char* line) {
   } else if (strcmp(command, "KEF") == 0) {
     cmd.type = CMD_KEF;
     cmd.arg_count = 4;
-  } else if (strcmp(command, "RINGMV") == 0) {
-    cmd.type = CMD_RINGMV;
-    cmd.arg_count = 5;
   } else if (strcmp(command, "KEMR") == 0) {
     cmd.type = CMD_KEMR;
     cmd.arg_count = 4;
@@ -74,7 +69,7 @@ bdCommand ParseCommand(const char* line) {
     cmd.arg_count = 5;
   } else if (strcmp(command, "SWEEP") == 0) {
     cmd.type = CMD_SWEEP;
-    cmd.arg_count = 4;
+    cmd.arg_count = 5;
   } else if (strcmp(command, "RSWEEP") == 0) {
     cmd.type = CMD_RSWEEP;
     cmd.arg_count = 5;
@@ -208,18 +203,6 @@ bdSolid* ExecuteCommands(const char* script, char* error_msg, size_t error_size)
         }
         break;
 
-      case CMD_RINGMV:
-        if (!solid) {
-          snprintf(error_msg, error_size, "Line %d: No solid exists", line_num);
-          return solid;
-        }
-        if (Ringmv(solid, (Id)cmd.args[0], (Id)cmd.args[1], (Id)cmd.args[2],
-                   (Id)cmd.args[3], (int)cmd.args[4]) != SUCCESS) {
-          snprintf(error_msg, error_size, "Line %d: RINGMV failed", line_num);
-          return solid;
-        }
-        break;
-
       case CMD_KEMR:
         if (Kemr((Id)cmd.args[0], (Id)cmd.args[1], (Id)cmd.args[2],
                  (Id)cmd.args[3]) != SUCCESS) {
@@ -264,7 +247,7 @@ bdSolid* ExecuteCommands(const char* script, char* error_msg, size_t error_size)
           snprintf(error_msg, error_size, "Line %d: No solid exists", line_num);
           return solid;
         }
-        Sweep(GetFace(solid, (Id)cmd.args[0]), cmd.args[1], cmd.args[2], cmd.args[3]);
+        Sweep((Id)cmd.args[0], (Id)cmd.args[1], cmd.args[2], cmd.args[3], cmd.args[4]);
         break;
 
       case CMD_RSWEEP:
@@ -272,7 +255,7 @@ bdSolid* ExecuteCommands(const char* script, char* error_msg, size_t error_size)
           snprintf(error_msg, error_size, "Line %d: No solid exists", line_num);
           return solid;
         }
-        Rsweep(solid, (int)cmd.args[0], cmd.args[1], cmd.args[2], cmd.args[3]);
+        Rsweep((Id)cmd.args[0], (int)cmd.args[1], cmd.args[2], cmd.args[3], cmd.args[4]);
         break;
 
       case CMD_ARC:
@@ -282,10 +265,7 @@ bdSolid* ExecuteCommands(const char* script, char* error_msg, size_t error_size)
         break;
 
       case CMD_CIRCLE:
-        new_solid = Circle((Id)cmd.args[0], cmd.args[1], cmd.args[2],
-                           cmd.args[3], cmd.args[4], (int)cmd.args[5]);
-        if (solid) Kvfs(solid);
-        solid = new_solid;
+        Circle((Id)cmd.args[0], cmd.args[1], cmd.args[2],cmd.args[3], cmd.args[4], (int)cmd.args[5]);
         break;
 
       default:

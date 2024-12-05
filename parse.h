@@ -11,7 +11,6 @@ typedef enum {
   CMD_MEF,
   CMD_SMEF,
   CMD_KEF,
-  CMD_RINGMV,
   CMD_KEMR,
   CMD_MEKR,
   CMD_SMEKR,

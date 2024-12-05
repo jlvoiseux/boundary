@@ -251,33 +251,6 @@ bdFace* Lmfkrh(bdLoop* l, Id f) {
   return newface;
 }
 
-void Lringmv(bdLoop* l, bdFace* tofac, int inout) {
-  NULL_CHECK(l)
-  NULL_CHECK(tofac)
-
-  if (l->lface == tofac) {
-    if (inout == 0) {
-      if (l == tofac->flout) {
-        tofac->flout = NULL;
-      }
-    } else {
-      tofac->flout = l;
-    }
-    return;
-  }
-
-  Remove(LOOP, (bdNode*)l, (bdNode*)l->lface);
-  Append(LOOP, (bdNode*)l, (bdNode*)tofac);
-
-  if (inout == 0) {
-    if (l == l->lface->flout) {
-      l->lface->flout = NULL;
-    }
-  } else {
-    tofac->flout = l;
-  }
-}
-
 bdSolid* Mvfs(Id s, Id f, Id v, float x, float y, float z) {
   bdSolid* newsolid;
   bdFace* newface;
@@ -530,42 +503,6 @@ int Kef(Id s, Id f, Id v1, Id v2) {
   }
 
   Lkef(he, MATE(he));
-  return SUCCESS;
-}
-
-int Ringmv(bdSolid* s, Id f1, Id f2, Id v1, Id v2, int inout) {
-  NULL_CHECK_RET(s, ERROR)
-  bdFace* face1;
-  bdFace* face2;
-  bdLoop* loop = NULL;
-
-  if ((face1 = GetFace(s, f1)) == NULL) {
-    fprintf(stderr, "ringmv: face %d not found in solid\n", f1);
-    return ERROR;
-  }
-
-  if ((face2 = GetFace(s, f2)) == NULL) {
-    fprintf(stderr, "ringmv: face %d not found in solid\n", f2);
-    return ERROR;
-  }
-
-  if (v2 == 0) {
-    loop = face1->flout;
-  } else {
-    bdHalfEdge* he = GetHalfEdge(face1, v1, v2);
-    if (!he) {
-      fprintf(stderr, "ringmv: edge %d-%d not found in face %d\n", v1, v2, f1);
-      return ERROR;
-    }
-    loop = he->wloop;
-  }
-
-  if (!loop) {
-    fprintf(stderr, "ringmv: could not find loop to move\n");
-    return ERROR;
-  }
-
-  Lringmv(loop, face2, inout);
   return SUCCESS;
 }
 

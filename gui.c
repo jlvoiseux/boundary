@@ -12,12 +12,7 @@
 #include "euler.h"
 #include "parse.h"
 #include "render.h"
-#include "shape.h"
 #include "tesselate.h"
-
-#define X 0
-#define Y 1
-#define Z 2
 
 static RenderTexture2D g_viewport_texture;
 static bdCameraSystem g_camera_system = {0};
@@ -26,6 +21,47 @@ static bdToast g_toast = {0};
 static const float ZOOM_FACTOR = 0.1f;
 static const float PAN_SPEED = 0.025f;
 static const float ORBIT_SPEED = 0.01f;
+
+static const bdPresetScript PRESETS[] = {
+    {"Cube",
+     "MVFS 1 1 1 0.0 0.0 0.0\n"
+     "SMEV 1 1 1 2 2.0 0.0 0.0\n"
+     "SMEV 1 1 2 3 2.0 2.0 0.0\n"
+     "SMEV 1 1 3 4 0.0 2.0 0.0\n"
+     "SMEF 1 1 1 4 2\n"
+     "SWEEP 1 2 0.0 0.0 2.0\n"},
+
+    {"Cylinder",
+     "MVFS 1 1 1 2.0 0.0 0.0\n"
+     "CIRCLE 1 0.0 0.0 2.0 0.0 32\n"
+     "SWEEP 1 2 0.0 0.0 2.0\n"},
+
+    {"Sphere",
+     "MVFS 1 1 1 -2.0 0.0 0.0\n"
+     "ARC 1 1 1 0.0 0.0 2.0 0.0 180.0 0.0 32\n"
+     "RSWEEP 1 32 1.0 0.0 0.0\n"},
+
+    {"Torus",
+     "MVFS 1 1 1 0.5 1.5 0.0\n"
+     "CIRCLE 1 0.0 1.5 0.5 0 32\n"
+     "RSWEEP 1 32 1.0 0.0 0.0\n"}
+};
+
+static void ExecutePreset(const bdPresetScript* preset) {
+  strcpy(g_render_object.script, preset->script);
+  char error_msg[256] = {0};
+  bdSolid* new_solid = ExecuteCommands(g_render_object.script, error_msg, sizeof(error_msg));
+  if (new_solid) {
+    if (g_render_object.solid) {
+      Kvfs(g_render_object.solid);
+    }
+    g_render_object.solid = new_solid;
+    g_render_object.mesh_dirty = true;
+    ShowToast("Created successfully", false);
+  } else {
+    ShowToast(error_msg, true);
+  }
+}
 
 void InitCamera() {
   g_camera_system.camera.position = (Vector3){10.0f, 10.0f, 10.0f};
@@ -38,15 +74,15 @@ void InitCamera() {
 }
 
 void InitRenderObject() {
-  g_render_object.solid = Torus(1, 1.0f, 2.0f, 32, 32);
   g_render_object.mat = LoadMaterialDefault();
   LoadShaders(&g_render_object.mat);
   g_render_object.tr = MatrixIdentity();
   g_render_object.mesh_dirty = true;
-  g_render_object.mode = RENDER_MODE_TESSELLATED;
+  g_render_object.mode = RENDER_MODE_BREP;
 }
 
 void GuiSetup(bool dark) {
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(1920, 1080, "Boundary");
   SetTargetFPS(60);
 
@@ -240,19 +276,28 @@ void DrawControlsWindow() {
   igBegin("Controls", NULL, ImGuiWindowFlags_None);
 
   if (igCollapsingHeader_TreeNodeFlags("Render Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-    if (igRadioButton_Bool("Tessellated", g_render_object.mode == RENDER_MODE_TESSELLATED)) {
-      g_render_object.mode = RENDER_MODE_TESSELLATED;
-    }
-    
+
     if (igRadioButton_Bool("Normals (B-Rep)", g_render_object.mode == RENDER_MODE_BREP)) {
       g_render_object.mode = RENDER_MODE_BREP;
+    }
+    if (igRadioButton_Bool("Tessellated", g_render_object.mode == RENDER_MODE_TESSELLATED)) {
+      g_render_object.mode = RENDER_MODE_TESSELLATED;
     }
   }
 
   if (igCollapsingHeader_TreeNodeFlags("Script", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (int i = 0; i < sizeof(PRESETS)/sizeof(PRESETS[0]); i++) {
+      if (i > 0) igSameLine(0, 4);
+      if (igButton(PRESETS[i].name, (ImVec2){60, 0})) {
+        ExecutePreset(&PRESETS[i]);
+      }
+    }
+
+    ImVec2 content_size;
+    igGetContentRegionAvail(&content_size);
     igInputTextMultiline("##script", g_render_object.script,
                          sizeof(g_render_object.script),
-                         (ImVec2){0, 200}, ImGuiInputTextFlags_AllowTabInput, NULL,
+                         (ImVec2){content_size.x, 200}, ImGuiInputTextFlags_AllowTabInput, NULL,
                          NULL);
 
     if (igButton("Execute", (ImVec2){120, 0})) {

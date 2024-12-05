@@ -31,6 +31,11 @@ typedef struct {
   bool is_error;
 } bdToast;
 
+typedef struct {
+  const char* name;
+  const char* script;
+} bdPresetScript;
+
 void GuiSetup(bool dark);
 void GuiBegin(void);
 void GuiEnd(void);

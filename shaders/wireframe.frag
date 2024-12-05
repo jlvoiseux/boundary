@@ -23,7 +23,7 @@ vec3 normalToColor() {
 }
 
 void main() {
-    if (renderMode == 1) {
+    if (renderMode == 0) {
         finalColor = vec4(normalToColor(), 1.0);
     } else {
         float edge = edgeFactor();

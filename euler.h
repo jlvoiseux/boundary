@@ -15,8 +15,6 @@ void Lkev(bdHalfEdge* he1, bdHalfEdge* he2);
 bdFace* Lmef(bdHalfEdge* he1, bdHalfEdge* he2, Id f);
 // Inverse (Loop Kill Edge Face)
 void Lkef(bdHalfEdge* he1, bdHalfEdge* he2);
-// Loop movement addendum (Loop Ring Move)
-void Lringmv(bdLoop* l, bdFace* tofac, int inout);
 
 // Loop splitting operator (Loop Kill Edge Make Ring)
 bdLoop* Lkemr(bdHalfEdge* he1, bdHalfEdge* he2);
@@ -52,8 +50,6 @@ int Mef(Id s, Id f1, Id f2, Id v1, Id v2, Id v3, Id v4);
 int Smef(Id s, Id f1, Id v1, Id v3, Id f2);
 // Inverse (Kill Edge Face)
 int Kef(Id s, Id f, Id v1, Id v2);
-// Ring movement addendum (Ring Move)
-int Ringmv(bdSolid* s, Id f1, Id f2, Id v1, Id v2, int inout);
 
 // Loop splitting operator (Kill Edge Make Ring)
 int Kemr(Id s, Id f, Id v1, Id v2);

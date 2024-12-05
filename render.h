@@ -4,8 +4,8 @@
 #include "prim.h"
 
 typedef enum {
-  RENDER_MODE_TESSELLATED,
-  RENDER_MODE_BREP
+  RENDER_MODE_BREP,
+  RENDER_MODE_TESSELLATED
 } bdRenderMode;
 
 typedef struct {

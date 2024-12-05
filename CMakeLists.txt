@@ -29,7 +29,6 @@ add_executable(
         rlimgui/rlcimgui.c
         euler.c
         scan.c
-        shape.c
         transform.c
         linalg.c
         render.c

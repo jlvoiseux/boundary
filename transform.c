@@ -8,11 +8,14 @@
 #include "euler.h"
 #include "scan.h"
 
-void Sweep(bdFace* fac, float dx, float dy, float dz) {
+void Sweep(Id s, Id f, float dx, float dy, float dz) {
   bdLoop* l;
   bdHalfEdge* first;
   bdHalfEdge* scan;
   bdVertex* v;
+
+  bdSolid* sol = GetSolid(s);
+  bdFace* fac = GetFace(sol, f);
 
   GetMaxNames(fac->fsolid->solidno);
   l = fac->floops;
@@ -38,36 +41,7 @@ void Sweep(bdFace* fac, float dx, float dy, float dz) {
   }
 }
 
-void Unsweep(bdFace* f) {
-  NULL_CHECK(f)
-  bdLoop* l = f->floops;
-  bdLoop* nextl;
-  bdHalfEdge* first;
-  bdHalfEdge* scan;
-  bdHalfEdge* todelete;
-
-  while (l) {
-    nextl = l->nextl;
-    first = l->ledg;
-    scan = first;
-
-    do {
-      todelete = MATE(scan)->nxt;
-      if (todelete != first) {
-        Kef(f->fsolid->solidno, MATE(scan)->wloop->lface->faceno,
-            todelete->vtx->vertexno, todelete->nxt->vtx->vertexno);
-        Kev(f->fsolid->solidno, f->faceno, scan->vtx->vertexno,
-            MATE(scan)->vtx->vertexno);
-      }
-      scan = scan->nxt;
-    } while (scan != first);
-
-    l = nextl;
-  }
-}
-
-void Rsweep(bdSolid* s, int nfaces, float xaxis, float yaxis, float zaxis) {
-  NULL_CHECK(s)
+void Rsweep(Id s, int nfaces, float xaxis, float yaxis, float zaxis) {
   bdHalfEdge* first;
   bdHalfEdge* cfirst;
   bdHalfEdge* last;
@@ -79,19 +53,22 @@ void Rsweep(bdSolid* s, int nfaces, float xaxis, float yaxis, float zaxis) {
   bdVector v;
   int closed_figure;
 
-  if (s->sfaces->nextf) {
+  bdSolid* sol = GetSolid(s);
+  NULL_CHECK(sol)
+
+  if (sol->sfaces->nextf) {
     closed_figure = 1;
-    h = s->sfaces->floops->ledg;
+    h = sol->sfaces->floops->ledg;
     Lmev(h, MATE(h)->nxt, ++maxv, h->vtx->vcoord[0], h->vtx->vcoord[1],
          h->vtx->vcoord[2]);
     Lkef(h->prv, MATE(h->prv));
-    headf = s->sfaces;
+    headf = sol->sfaces;
   } else {
     closed_figure = 0;
   }
 
-  GetMaxNames(s->solidno);
-  first = s->sfaces->floops->ledg;
+  GetMaxNames(s);
+  first = sol->sfaces->floops->ledg;
   while (first->edg != first->nxt->edg) {
     first = first->nxt;
   }
@@ -131,6 +108,32 @@ void Rsweep(bdSolid* s, int nfaces, float xaxis, float yaxis, float zaxis) {
   }
 }
 
+void Arc(Id s, Id f, Id v, float cx, float cy, float rad, float h, float phi1,
+         float phi2, int n) {
+  float x, y, angle, inc;
+  Id prev;
+  int i;
+
+  angle = phi1 * PI / 180.0f;
+  inc = (phi2 - phi1) * PI / (180.0f * (float)n);
+  prev = v;
+  GetMaxNames(s);
+
+  for (i = 0; i < n; i++) {
+    angle += inc;
+    x = cx + cosf(angle) * rad;
+    y = cy + sinf(angle) * rad;
+    Smev(s, f, prev, ++maxv, x, y, h);
+    prev = maxv;
+  }
+}
+
+void Circle(Id s, float cx, float cy, float rad, float h, int n) {
+  Arc(s, 1, 1, cx, cy, rad, h, 0.0f, ((float)(n - 1) * 360.0f / (float)n),n - 1);
+  Smef(s, 1, 1, n, 2);
+}
+
+
 void Merge(bdSolid* s1, bdSolid* s2) {
   NULL_CHECK(s1)
   NULL_CHECK(s2)
@@ -148,17 +151,6 @@ void Merge(bdSolid* s1, bdSolid* s2) {
     Append(VERTEX, (bdNode*)s2->sverts, (bdNode*)s1);
   }
   DeleteNode(SOLID, (bdNode*)s2, NULL);
-}
-
-void Glue(bdSolid* s1, bdSolid* s2, bdFace* f1, bdFace* f2) {
-  NULL_CHECK(s1)
-  NULL_CHECK(s2)
-  NULL_CHECK(f1)
-  NULL_CHECK(f2)
-
-  Merge(s1, s2);
-  Lkfmrh(f1, f2);
-  LoopGlue(f1);
 }
 
 void LoopGlue(bdFace* fac) {
