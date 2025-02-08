@@ -1,11 +1,17 @@
 # Boundary
+There is a certain elegance in the **boundary representation of solids**. A relatively small set of basic topological elements
+(edges, faces, vertices), together with a compact kernel of basic operations, allows for accurate representation of a wide
+range of 3D shapes. This kernel implements the set of fundamental operations described in Martti Mäntylä's "[Introduction to
+Solid Modelling](https://books.google.fi/books/about/An_Introduction_to_Solid_Modeling.html)" in C, with a basic ImGui + Raylib user interface.
 
-A small boundary representation geometry kernel and solid modelling interface.
+## Screenshots
+![boundary](https://github.com/user-attachments/assets/10879f0d-d7e3-4866-aa35-91e1c4e38dbb)
+<img width="959" alt="Screenshot 2025-02-08 230928" src="https://github.com/user-attachments/assets/a2a01ff0-55e1-4fe7-8983-fb00d12cd9f2" />
+<img width="958" alt="Screenshot 2025-02-08 230859" src="https://github.com/user-attachments/assets/0954444b-674f-4b87-8b0a-0f0c04a21d49" />
 
-Based on [An Introduction to Solid Modeling](https://www.amazon.com/Introduction-Solid-Modeling-Martti-Mantyla/dp/0716780151), by Martti Mantyla.
-Raylib Dear ImGui [backend](https://github.com/alfredbaudisch/raylib-cimgui) by Alfred Reinold Baudisch
 
-## Syntax
+## Usage
+### Syntax
 ```
 // Initialization operator (Make Vertex Face Solid)
 Op      int         int         int         float   float   float
@@ -76,9 +82,9 @@ Op      int         float       float       float   float   int
 CIRCLE  SOLID_ID    CEN_X       CEN_Y       RAD     H       NUM_SEGS
 ```
 
-## Examples
+### Examples
 
-### Cube
+#### Cube
 ```
 MVFS 1 1 1 0.0 0.0 0.0
 SMEV 1 1 1 2 2.0 0.0 0.0
@@ -88,23 +94,30 @@ SMEF 1 1 1 4 2
 SWEEP 1 2 0.0 0.0 2.0
 ```
 
-### Cylinder
+#### Cylinder
 ```
 MVFS 1 1 1 2.0 0.0 0.0
 CIRCLE 1 0.0 0.0 2.0 0.0 32
 SWEEP 1 2 0.0 0.0 2.0
 ```
 
-### Sphere
+#### Sphere
 ```
 MVFS 1 1 1 -2.0 0.0 0.0
 ARC 1 1 1 0.0 0.0 2.0 0.0 180.0 0.0 32
 RSWEEP 1 32 1.0 0.0 0.0
 ```
 
-### Torus
+#### Torus
 ```
 MVFS 1 1 1 0.5 1.5 0.0
 CIRCLE 1 0.0 1.5 0.5 0 32
 RSWEEP 1 32 1.0 0.0 0.0
 ```
+
+## References and dependencies
+- Based on [An Introduction to Solid Modeling](https://www.amazon.com/Introduction-Solid-Modeling-Martti-Mantyla/dp/0716780151), by Martti Mantyla.
+- Raylib ([source](https://github.com/raysan5/raylib), [license](https://github.com/raysan5/raylib?tab=Zlib-1-ov-file#readme))
+- cImGui ([source](https://github.com/cimgui/cimgui), [license](https://github.com/cimgui/cimgui?tab=MIT-1-ov-file#readme))
+- Raylib C Dear ImGui backend ([source](https://github.com/alfredbaudisch/raylib-cimgui), [license](https://github.com/alfredbaudisch/raylib-cimgui?tab=Zlib-1-ov-file#readme))
+- Unity ([source](https://github.com/ThrowTheSwitch/Unity), [license](https://github.com/ThrowTheSwitch/Unity?tab=MIT-1-ov-file#readme))
